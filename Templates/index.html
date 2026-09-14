@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Freight Optimization System</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Freight Optimization System</h1>
+
+        <p class="subtitle">
+            Intelligent sourcing, freight and vessel recommendation
+        </p>
+
+
+        <!-- INPUT FORM -->
+
+        <div class="card shipment-card">
+    <div class="section-title">
+        <span class="section-icon">🚢</span>
+        <div>
+            <h2>Shipment Details</h2>
+            <p>Enter your cargo and voyage requirements</p>
+        </div>
+    </div>
+
+    <form action="/analyze" method="POST">
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label>Raw Material</label>
+
+                <select name="material">
+                    <option value="Coal">Coal</option>
+                    <option value="Iron Ore">Iron Ore</option>
+                    <option value="Limestone">Limestone</option>
+                    <option value="Bauxite">Bauxite</option>
+                </select>
+            </div>
+
+
+            <div class="form-group">
+                <label>Quantity (Tonnes)</label>
+
+                <input
+                    type="number"
+                    name="quantity"
+                    placeholder="Example: 70000"
+                    min="1"
+                    required
+                >
+            </div>
+
+
+            <div class="form-group">
+                <label>Origin Country</label>
+
+                <select name="origin">
+                    <option value="All">All Source Countries</option>
+                    <option value="Australia">Australia</option>
+                    <option value="USA">USA</option>
+                    <option value="Mozambique">Mozambique</option>
+                    <option value="Russia">Russia</option>
+                    <option value="Indonesia">Indonesia</option>
+                </select>
+            </div>
+
+
+            <div class="form-group">
+                <label>Destination Port</label>
+
+                <select name="destination">
+                    <option value="Paradip">Paradip</option>
+                    <option value="Vizag">Vizag</option>
+                    <option value="Gangavaram">Gangavaram</option>
+                    <option value="Gopalpur">Gopalpur</option>
+                    <option value="Dhamra">Dhamra</option>
+                    <option value="Sagar-Sandheads">Sagar-Sandheads</option>
+                    <option value="Haldia">Haldia</option>
+                </select>
+            </div>
+
+        </div>
+
+        <button type="submit" class="analyze-btn">
+            Analyze Shipment
+            <span>→</span>
+        </button>
+
+    </form>
+</div>
+
+
+        {% if source_results %}
+
+        <!-- SOURCE RESULTS -->
+
+        <div class="card">
+
+            <h2>Source Country Analysis</h2>
+
+            <table>
+
+                <tr>
+                    <th>Country</th>
+                    <th>Material Price</th>
+                    <th>Freight</th>
+                    <th>Total / Tonne</th>
+                    <th>Transit</th>
+                    <th>Risk</th>
+                </tr>
+
+                {% for source in source_results %}
+
+                <tr>
+
+                    <td>{{ source.country }}</td>
+
+                    <td>${{ source.material_price }}</td>
+
+                    <td>${{ source.freight }}</td>
+
+                    <td>
+                        <b>${{ source.total_per_tonne }}</b>
+                    </td>
+
+                    <td>
+                        {{ source.transit_days }} days
+                    </td>
+
+                    <td>
+                        {{ source.risk }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        </div>
+
+
+        <!-- BEST SOURCE -->
+
+        {% if best_source %}
+
+        <div class="card recommendation">
+
+            <h2>Recommended Source</h2>
+
+            <h3>
+                {{ best_source.country }}
+            </h3>
+
+            <p>
+                Export Port:
+                <b>{{ best_source.export_port }}</b>
+            </p>
+
+            <p>
+                Total Landed Cost:
+                <b>${{ best_source.total_per_tonne }}/tonne</b>
+            </p>
+
+            <p>
+                Estimated Total:
+                <b>${{ "{:,.0f}".format(best_source.total_cost) }}</b>
+            </p>
+
+        </div>
+
+        {% endif %}
+
+
+        <!-- VESSEL RESULTS -->
+
+        <div class="card">
+
+            <h2>Vessel Filtering</h2>
+
+            <p>
+                Destination:
+                <b>{{ destination }}</b>
+            </p>
+
+            <p>
+                Port Limits:
+                LOA ≤ {{ port.Max_LOA }}m,
+                Beam ≤ {{ port.Max_Beam }}m,
+                Draft ≤ {{ port.Max_Draft }}m
+            </p>
+
+
+            {% if eligible_vessels %}
+
+            <h3>Eligible Vessels</h3>
+
+            <table>
+
+                <tr>
+                    <th>Vessel Type</th>
+                    <th>Capacity</th>
+                    <th>LOA</th>
+                    <th>Beam</th>
+                    <th>Draft</th>
+                </tr>
+
+                {% for vessel in eligible_vessels %}
+
+                <tr>
+
+                    <td>
+                        <b>{{ vessel.type }}</b>
+                    </td>
+
+                    <td>{{ vessel.capacity }} t</td>
+                    <td>{{ vessel.loa }} m</td>
+                    <td>{{ vessel.beam }} m</td>
+                    <td>{{ vessel.draft }} m</td>
+
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+            {% else %}
+
+            <p>
+                No vessel satisfies the current requirements.
+            </p>
+
+            {% endif %}
+
+
+            {% if rejected_vessels %}
+
+            <h3>Rejected Vessels</h3>
+
+            <ul>
+
+                {% for vessel in rejected_vessels %}
+
+                <li>
+                    <b>{{ vessel.type }}</b>
+                    → {{ vessel.reason }}
+                </li>
+
+                {% endfor %}
+
+            </ul>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- FINAL RECOMMENDATION -->
+
+        <div class="card final">
+
+            <h2>Final Recommendation</h2>
+
+            <p>
+                {{ recommendation }}
+            </p>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</body>
+
+</html>

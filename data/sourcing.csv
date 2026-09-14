@@ -1,0 +1,15 @@
+Country,Commodity,Material_Price,Freight,Export_Port,Transit_Days,Risk
+Australia,Coal,90,35,Newcastle,18,Medium
+Indonesia,Coal,100,18,Taboneo,12,Low
+Mozambique,Coal,88,32,Maputo,20,Medium
+USA,Coal,95,40,New Orleans,30,High
+Russia,Coal,85,38,Vostochny,25,High
+Australia,Iron Ore,105,22,Port Hedland,14,Low
+Brazil,Iron Ore,98,30,Tubarao,28,Medium
+USA,Iron Ore,110,35,New Orleans,30,High
+Australia,Limestone,42,18,Gladstone,16,Low
+Indonesia,Limestone,45,20,Surabaya,12,Low
+USA,Limestone,48,30,Mobile,27,Medium
+Australia,Bauxite,58,20,Weipa,17,Low
+Indonesia,Bauxite,55,18,Balikpapan,12,Low
+Mozambique,Bauxite,62,28,Maputo,20,Medium

@@ -1,0 +1,5 @@
+Vessel_Type,Capacity,LOA,Beam,Draft
+Handysize,40000,190,30,10
+Supramax,60000,200,32,12
+Panamax,80000,225,32,14
+Capesize,150000,290,45,18

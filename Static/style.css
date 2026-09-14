@@ -1,0 +1,419 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #eaf2ff;
+    min-height: 100vh;
+    padding: 35px 20px;
+
+    background:
+        radial-gradient(circle at 15% 10%, rgba(0, 140, 255, 0.16), transparent 28%),
+        radial-gradient(circle at 85% 20%, rgba(0, 200, 255, 0.10), transparent 25%),
+        linear-gradient(135deg, #050b14, #0a1424 50%, #050b14);
+}
+
+
+/* ================= CONTAINER ================= */
+
+.container {
+    max-width: 1180px;
+    margin: auto;
+}
+
+
+/* ================= HEADER ================= */
+
+h1 {
+    text-align: center;
+    font-size: 46px;
+    font-weight: 800;
+    letter-spacing: -1px;
+
+    background: linear-gradient(
+        90deg,
+        #ffffff,
+        #62c8ff,
+        #9de5ff
+    );
+
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #8197b3;
+    font-size: 16px;
+    margin-bottom: 38px;
+}
+
+
+/* ================= CARDS ================= */
+
+.card {
+    position: relative;
+
+    background: rgba(10, 24, 42, 0.78);
+
+    border: 1px solid rgba(105, 180, 255, 0.14);
+    border-radius: 20px;
+
+    padding: 28px;
+    margin-bottom: 22px;
+
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+
+    backdrop-filter: blur(15px);
+
+    transition: 0.3s ease;
+}
+
+.card:hover {
+    border-color: rgba(75, 175, 255, 0.30);
+
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.45),
+        0 0 30px rgba(0, 140, 255, 0.07);
+}
+
+
+/* ================= SECTION TITLE ================= */
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    margin-bottom: 25px;
+}
+
+.section-icon {
+    width: 48px;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+
+    background: rgba(0, 153, 255, 0.10);
+
+    border: 1px solid rgba(80, 180, 255, 0.18);
+
+    font-size: 23px;
+}
+
+.section-title h2 {
+    margin-bottom: 3px;
+}
+
+.section-title p {
+    color: #7188a5;
+    font-size: 13px;
+}
+
+
+/* ================= HEADINGS ================= */
+
+h2 {
+    font-size: 23px;
+    color: #f4f8ff;
+    margin-bottom: 18px;
+}
+
+h3 {
+    color: #61c7ff;
+    margin: 18px 0 10px;
+}
+
+
+/* ================= FORM ================= */
+
+.form-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 20px;
+}
+
+.form-group label {
+    display: block;
+
+    color: #a5bad3;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    margin-bottom: 8px;
+}
+
+input,
+select {
+    width: 100%;
+
+    padding: 14px 15px;
+
+    border-radius: 10px;
+
+    border: 1px solid #223c59;
+
+    background: #071525;
+
+    color: #e8f2ff;
+
+    outline: none;
+
+    font-size: 15px;
+
+    transition: 0.25s ease;
+}
+
+input::placeholder {
+    color: #5f748c;
+}
+
+input:focus,
+select:focus {
+    border-color: #2daaff;
+
+    box-shadow:
+        0 0 0 3px rgba(45, 170, 255, 0.10),
+        0 0 20px rgba(45, 170, 255, 0.07);
+}
+
+
+/* ================= BUTTON ================= */
+
+.analyze-btn {
+    width: 100%;
+
+    margin-top: 25px;
+
+    padding: 15px;
+
+    border: none;
+    border-radius: 11px;
+
+    background:
+        linear-gradient(
+            100deg,
+            #087cf0,
+            #00b8ff
+        );
+
+    color: white;
+
+    font-size: 16px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 10px 30px rgba(0, 140, 255, 0.25);
+
+    transition: 0.25s ease;
+}
+
+.analyze-btn span {
+    margin-left: 8px;
+    font-size: 20px;
+}
+
+.analyze-btn:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 14px 35px rgba(0, 160, 255, 0.40);
+}
+
+.analyze-btn:active {
+    transform: scale(0.99);
+}
+
+
+/* ================= TABLE ================= */
+
+table {
+    width: 100%;
+
+    border-collapse: separate;
+    border-spacing: 0;
+
+    overflow: hidden;
+
+    border: 1px solid #203a57;
+
+    border-radius: 13px;
+
+    margin-top: 15px;
+}
+
+th {
+    padding: 14px;
+
+    background: #0d2138;
+
+    color: #65c8ff;
+
+    text-align: left;
+
+    font-size: 12px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.6px;
+}
+
+td {
+    padding: 14px;
+
+    color: #c3d4e7;
+
+    border-top: 1px solid #1b334e;
+
+    font-size: 14px;
+}
+
+tr:hover td {
+    background: rgba(30, 145, 230, 0.06);
+}
+
+td b {
+    color: #ffffff;
+}
+
+
+/* ================= RECOMMENDATION ================= */
+
+.recommendation {
+    border-left: 4px solid #00b8ff;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(0, 150, 255, 0.12),
+            rgba(8, 23, 40, 0.85)
+        );
+}
+
+.recommendation h3 {
+    font-size: 28px;
+    margin-bottom: 15px;
+}
+
+.recommendation p {
+    margin: 9px 0;
+    color: #a9bfd7;
+}
+
+.recommendation b {
+    color: #ffffff;
+}
+
+
+/* ================= FINAL RECOMMENDATION ================= */
+
+.final {
+    border-left: 4px solid #43f5b0;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(0, 255, 170, 0.08),
+            rgba(8, 23, 40, 0.9)
+        );
+}
+
+.final h2 {
+    color: #5dffc0;
+}
+
+.final p {
+    color: #d5e4f3;
+
+    font-size: 18px;
+
+    line-height: 1.7;
+}
+
+
+/* ================= GENERAL TEXT ================= */
+
+.card p {
+    color: #9eb4cc;
+    line-height: 1.6;
+}
+
+.card p b {
+    color: #ffffff;
+}
+
+
+/* ================= LIST ================= */
+
+ul {
+    padding-left: 22px;
+    margin-top: 10px;
+}
+
+li {
+    color: #b7cbe0;
+    margin: 9px 0;
+}
+
+
+/* ================= SCROLLBAR ================= */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #050b14;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1c527b;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #2a83bb;
+}
+
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 750px) {
+
+    body {
+        padding: 20px 12px;
+    }
+
+    h1 {
+        font-size: 32px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+}
