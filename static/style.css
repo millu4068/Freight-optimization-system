@@ -416,4 +416,47 @@ li {
         display: block;
         overflow-x: auto;
     }
+    
+}
+.weather-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.weather-item {
+    padding: 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    text-align: center;
+}
+
+.weather-item span {
+    display: block;
+    margin-bottom: 8px;
+    opacity: 0.7;
+}
+
+.weather-item b {
+    font-size: 20px;
+}
+
+.weather-risk {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.weather-risk h3 {
+    margin-top: 0;
+}
+
+@media (max-width: 700px) {
+
+    .weather-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
 }

@@ -263,9 +263,85 @@
             {% endif %}
 
         </div>
+        <!-- WEATHER ANALYSIS -->
 
+<div class="card weather-card">
 
-        <!-- FINAL RECOMMENDATION -->
+    <h2>🌦️ Weather & Risk Analysis</h2>
+
+    <p>
+        Destination:
+        <b>{{ destination }}</b>
+    </p>
+
+    {% if weather %}
+
+    <div class="weather-grid">
+
+        <div class="weather-item">
+            <span>Temperature</span>
+            <b>{{ weather.temperature }} °C</b>
+        </div>
+
+        <div class="weather-item">
+            <span>Wind Speed</span>
+            <b>{{ weather.wind_speed }} km/h</b>
+        </div>
+
+        <div class="weather-item">
+            <span>Precipitation</span>
+            <b>{{ weather.precipitation }} mm</b>
+        </div>
+
+        <div class="weather-item">
+            <span>Rain Probability</span>
+            <b>{{ weather.rain_probability }}%</b>
+        </div>
+
+    </div>
+
+    <div class="weather-risk">
+
+        <h3>
+            Weather Risk:
+            {{ weather.risk }}
+        </h3>
+
+        {% if weather.risk == "HIGH" %}
+
+        <p>
+            Severe weather conditions may increase
+            the possibility of voyage or port delays.
+        </p>
+
+        {% elif weather.risk == "MODERATE" %}
+
+        <p>
+            Moderate weather conditions may cause
+            some operational delays.
+        </p>
+
+        {% elif weather.risk == "LOW" %}
+
+        <p>
+            Current weather conditions appear relatively
+            favorable for operations.
+        </p>
+
+        {% else %}
+
+        <p>
+            Weather information is currently unavailable.
+        </p>
+
+        {% endif %}
+
+    </div>
+
+    {% endif %}
+
+    </div>
+
 
         <div class="card final">
 

@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 import csv
+import requests
 
 app = Flask(__name__)
 
@@ -10,6 +11,79 @@ app = Flask(__name__)
 def read_csv(filename):
     with open(filename, "r", newline="", encoding="utf-8") as file:
         return list(csv.DictReader(file))
+
+
+# -----------------------------
+# Destination port coordinates
+# -----------------------------
+port_coordinates = {
+    "Paradip": (20.27, 86.68),
+    "Vizag": (17.69, 83.22),
+    "Gangavaram": (17.63, 83.27),
+    "Gopalpur": (19.27, 84.88),
+    "Dhamra": (20.78, 86.95),
+    "Sagar-Sandheads": (21.65, 88.00),
+    "Haldia": (22.03, 88.06)
+}
+
+
+# -----------------------------
+# Get weather information
+# -----------------------------
+def get_weather(destination):
+
+    latitude, longitude = port_coordinates[destination]
+
+    url = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={latitude}"
+        f"&longitude={longitude}"
+        "&current=temperature_2m,wind_speed_10m,precipitation"
+        "&daily=precipitation_probability_max"
+        "&forecast_days=1"
+        "&timezone=auto"
+    )
+
+    try:
+
+        response = requests.get(url, timeout=10)
+        data = response.json()
+
+        temperature = data["current"]["temperature_2m"]
+        wind_speed = data["current"]["wind_speed_10m"]
+        precipitation = data["current"]["precipitation"]
+        rain_probability = data["daily"]["precipitation_probability_max"][0]
+
+        # -----------------------------
+        # Calculate weather risk
+        # -----------------------------
+
+        if wind_speed >= 40 or rain_probability >= 80:
+            risk = "HIGH"
+
+        elif wind_speed >= 25 or rain_probability >= 50:
+            risk = "MODERATE"
+
+        else:
+            risk = "LOW"
+
+        return {
+            "temperature": temperature,
+            "wind_speed": wind_speed,
+            "precipitation": precipitation,
+            "rain_probability": rain_probability,
+            "risk": risk
+        }
+
+    except Exception:
+
+        return {
+            "temperature": "N/A",
+            "wind_speed": "N/A",
+            "precipitation": "N/A",
+            "rain_probability": "N/A",
+            "risk": "Unavailable"
+        }
 
 
 # -----------------------------
@@ -31,15 +105,19 @@ def analyze():
     origin = request.form["origin"]
     destination = request.form["destination"]
 
-    # Read our datasets
+    # Read datasets
     sourcing_data = read_csv("data/sourcing.csv")
     vessel_data = read_csv("data/vessels.csv")
     port_data = read_csv("data/ports.csv")
 
+    # -----------------------------
     # Find destination port
+    # -----------------------------
+
     selected_port = None
 
     for port in port_data:
+
         if port["Port"] == destination:
             selected_port = port
             break
@@ -47,14 +125,21 @@ def analyze():
     if selected_port is None:
         return "Destination port not found."
 
-    # Convert port restrictions into numbers
+    # Convert port restrictions
     max_loa = float(selected_port["Max_LOA"])
     max_beam = float(selected_port["Max_Beam"])
     max_draft = float(selected_port["Max_Draft"])
 
-    # --------------------------------
-    # Calculate source country ranking
-    # --------------------------------
+    # -----------------------------
+    # Weather analysis
+    # -----------------------------
+
+    weather = get_weather(destination)
+
+    # -----------------------------
+    # Source country ranking
+    # -----------------------------
+
     source_results = []
 
     for source in sourcing_data:
@@ -82,12 +167,14 @@ def analyze():
             "risk": source["Risk"]
         })
 
-    # Sort countries by total landed cost
-    source_results.sort(key=lambda x: x["total_per_tonne"])
+    source_results.sort(
+        key=lambda x: x["total_per_tonne"]
+    )
 
-    # --------------------------------
+    # -----------------------------
     # Vessel filtering
-    # --------------------------------
+    # -----------------------------
+
     eligible_vessels = []
     rejected_vessels = []
 
@@ -134,14 +221,20 @@ def analyze():
                 "reason": ", ".join(reasons)
             })
 
-    # --------------------------------
+    # -----------------------------
     # Best source
-    # --------------------------------
-    best_source = source_results[0] if source_results else None
+    # -----------------------------
 
-    # --------------------------------
+    best_source = (
+        source_results[0]
+        if source_results
+        else None
+    )
+
+    # -----------------------------
     # Final recommendation
-    # --------------------------------
+    # -----------------------------
+
     if best_source and eligible_vessels:
 
         recommended_vessel = eligible_vessels[0]
@@ -149,19 +242,24 @@ def analyze():
         recommendation = (
             f"Source from {best_source['country']} through "
             f"{best_source['export_port']} and consider a "
-            f"{recommended_vessel['type']} vessel."
+            f"{recommended_vessel['type']} vessel. "
+            f"Destination weather risk is {weather['risk']}."
         )
 
     elif best_source:
 
         recommendation = (
-            "A suitable vessel could not be found for the entered "
-            "cargo quantity and destination port."
+            "A suitable vessel could not be found for the "
+            "entered cargo quantity and destination port."
         )
 
     else:
 
         recommendation = "No suitable sourcing data found."
+
+    # -----------------------------
+    # Send results to HTML
+    # -----------------------------
 
     return render_template(
         "index.html",
@@ -174,9 +272,9 @@ def analyze():
         best_source=best_source,
         eligible_vessels=eligible_vessels,
         rejected_vessels=rejected_vessels,
-        recommendation=recommendation
+        recommendation=recommendation,
+        weather=weather
     )
-
 
 if __name__ == "__main__":
     app.run(debug=True)
