@@ -460,3 +460,139 @@ li {
     }
 
 }
+/* ================= ROUTE ANALYSIS ================= */
+
+.route-path {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    margin: 25px 0;
+}
+
+.route-point {
+    padding: 20px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(105, 180, 255, 0.10);
+    text-align: center;
+    min-width: 200px;
+}
+
+.route-point span {
+    display: block;
+    color: #8197b3;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.route-point b {
+    font-size: 18px;
+}
+
+.route-arrow {
+    font-size: 30px;
+}
+
+.route-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.route-item {
+    padding: 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(105, 180, 255, 0.10);
+    text-align: center;
+}
+
+.route-item span {
+    display: block;
+    color: #8197b3;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.route-item b {
+    font-size: 19px;
+}
+
+.route-note {
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 4px solid #61c7ff;
+}
+
+.route-note h3 {
+    margin-top: 0;
+}
+
+.route-note p {
+    margin-bottom: 8px;
+}
+
+
+/* ================= ROUTE MOBILE ================= */
+
+@media (max-width: 750px) {
+
+    .route-path {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .route-arrow {
+        transform: rotate(90deg);
+    }
+
+    .route-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+/* ================= ROUTE MAP ================= */
+
+.route-map-container {
+    margin-top: 25px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(105, 180, 255, 0.15);
+}
+
+#routeMap {
+    width: 100%;
+    height: 450px;
+}
+
+
+/* ================= ROUTE MAP MOBILE ================= */
+
+@media (max-width: 750px) {
+
+    #routeMap {
+        height: 350px;
+    }
+
+}
+.route-map-container {
+    margin-top: 25px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(105, 180, 255, 0.15);
+}
+
+#routeMap {
+    width: 100%;
+    height: 450px;
+}
+
+@media (max-width: 750px) {
+    #routeMap {
+        height: 350px;
+    }
+}

@@ -84,7 +84,108 @@ def get_weather(destination):
             "rain_probability": "N/A",
             "risk": "Unavailable"
         }
+    
+# ================= ROUTE ANALYSIS =================
 
+port_coordinates = {
+    "Paradip": (20.27, 86.68),
+    "Vizag": (17.69, 83.22),
+    "Gangavaram": (17.63, 83.27),
+    "Gopalpur": (19.27, 84.88),
+    "Dhamra": (20.78, 86.95),
+    "Sagar-Sandheads": (21.65, 88.00),
+    "Haldia": (22.03, 88.06)
+}
+
+export_port_coordinates = {
+
+    "Newcastle": (-32.93, 151.78),
+
+    "Taboneo": (-3.80, 114.55),
+
+    "Maputo": (-25.97, 32.58),
+
+    "New Orleans": (29.95, -90.07),
+
+    "Vostochny": (42.76, 133.08),
+
+    "Port Hedland": (-20.31, 118.58),
+
+    "Tubarao": (-20.28, -40.24),
+
+    "Gladstone": (-23.84, 151.25),
+
+    "Surabaya": (-7.25, 112.75),
+
+    "Mobile": (30.69, -88.04),
+
+    "Weipa": (-12.63, 141.88),
+
+    "Balikpapan": (-1.27, 116.83)
+}
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+
+    from math import radians, sin, cos, sqrt, atan2
+
+    R = 3440.065   # Earth radius in nautical miles
+
+    lat1 = radians(lat1)
+    lon1 = radians(lon1)
+    lat2 = radians(lat2)
+    lon2 = radians(lon2)
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = (
+        sin(dlat / 2) ** 2
+        + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    )
+
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    return R * c
+
+
+def get_route(export_port, destination):
+
+    if export_port not in export_port_coordinates:
+        return None
+
+    if destination not in port_coordinates:
+        return None
+
+    start_lat, start_lon = export_port_coordinates[export_port]
+    end_lat, end_lon = port_coordinates[destination]
+
+    distance = calculate_distance(
+        start_lat,
+        start_lon,
+        end_lat,
+        end_lon
+    )
+
+    # Prototype vessel speed
+    average_speed = 13
+
+    transit_hours = distance / average_speed
+    transit_days = transit_hours / 24
+
+    return {
+    "export_port": export_port,
+    "destination": destination,
+
+    "export_lat": start_lat,
+    "export_lon": start_lon,
+
+    "destination_lat": end_lat,
+    "destination_lon": end_lon,
+
+    "distance": round(distance),
+    "transit_days": round(transit_days, 1),
+    "speed": average_speed
+}
 
 # -----------------------------
 # Home page
@@ -230,6 +331,13 @@ def analyze():
         if source_results
         else None
     )
+    route = None
+
+    if best_source:
+        route = get_route(
+        best_source["export_port"],
+        destination
+    )
 
     # -----------------------------
     # Final recommendation
@@ -262,19 +370,20 @@ def analyze():
     # -----------------------------
 
     return render_template(
-        "index.html",
-        material=material,
-        quantity=quantity,
-        origin=origin,
-        destination=destination,
-        port=selected_port,
-        source_results=source_results,
-        best_source=best_source,
-        eligible_vessels=eligible_vessels,
-        rejected_vessels=rejected_vessels,
-        recommendation=recommendation,
-        weather=weather
-    )
+    "index.html",
+    material=material,
+    quantity=quantity,
+    origin=origin,
+    destination=destination,
+    port=selected_port,
+    source_results=source_results,
+    best_source=best_source,
+    eligible_vessels=eligible_vessels,
+    rejected_vessels=rejected_vessels,
+    recommendation=recommendation,
+    route=route,
+    weather=weather
+)
 
 if __name__ == "__main__":
     app.run(debug=True)

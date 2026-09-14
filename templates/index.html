@@ -8,6 +8,16 @@
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
 
+    <!-- Leaflet Map -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
 </head>
 
 <body>
@@ -342,6 +352,162 @@
 
     </div>
 
+            </div>
+
+
+        <!-- ROUTE ANALYSIS -->
+
+        {% if route %}
+
+        <div class="card route-card">
+
+            <h2>🚢 Route Analysis</h2>
+
+            <p>
+                Recommended Sea Route
+            </p>
+
+            <div class="route-path">
+
+                <div class="route-point">
+                    <span>EXPORT PORT</span>
+                    <b>{{ route.export_port }}</b>
+                </div>
+
+                <div class="route-arrow">
+                    →
+                </div>
+
+                <div class="route-point">
+                    <span>DESTINATION PORT</span>
+                    <b>{{ route.destination }}</b>
+                </div>
+
+            </div>
+
+
+            <div class="route-grid">
+
+                <div class="route-item">
+
+                    <span>Estimated Distance</span>
+
+                    <b>
+                        {{ "{:,}".format(route.distance) }} NM
+                    </b>
+
+                </div>
+
+
+                <div class="route-item">
+
+                    <span>Average Vessel Speed</span>
+
+                    <b>
+                        {{ route.speed }} knots
+                    </b>
+
+                </div>
+
+
+                <div class="route-item">
+
+                    <span>Estimated Transit</span>
+
+                    <b>
+                        {{ route.transit_days }} days
+                    </b>
+
+                </div>
+
+
+                <div class="route-item">
+
+                    <span>Route Status</span>
+
+                    <b>
+                        Favorable
+                    </b>
+
+                </div>
+
+            </div>
+
+<!-- ROUTE MAP -->
+
+<div class="route-map-container">
+
+    <div id="routeMap"></div>
+
+</div>
+
+<script>
+
+    const routeMap = L.map('routeMap').setView([20.27, 86.68], 4);
+
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            attribution: '&copy; OpenStreetMap contributors'
+        }
+    ).addTo(routeMap);
+
+    const start = [
+        {{ route.export_lat }},
+        {{ route.export_lon }}
+    ];
+
+    const end = [
+        {{ route.destination_lat }},
+        {{ route.destination_lon }}
+    ];
+
+    L.marker(start)
+        .addTo(routeMap)
+        .bindPopup("<b>{{ route.export_port }}</b>")
+        .openPopup();
+
+    L.marker(end)
+        .addTo(routeMap)
+        .bindPopup("<b>{{ route.destination }}</b>");
+
+    const routeLine = L.polyline(
+        [start, end],
+        {
+            weight: 4
+        }
+    ).addTo(routeMap);
+
+    routeMap.fitBounds(routeLine.getBounds(), {
+        padding: [30, 30]
+    });
+
+</script>
+
+            <div class="route-note">
+
+                <h3>Route Recommendation</h3>
+
+                <p>
+                    The system recommends the route from
+                    <b>{{ route.export_port }}</b>
+                    to
+                    <b>{{ route.destination }}</b>
+                    based on the selected sourcing option.
+                </p>
+
+                <p>
+                    Estimated voyage distance is approximately
+                    <b>{{ "{:,}".format(route.distance) }} nautical miles</b>
+                    with an estimated transit time of
+                    <b>{{ route.transit_days }} days</b>.
+                </p>
+
+            </div>
+
+        </div>
+
+        {% endif %}
 
         <div class="card final">
 
