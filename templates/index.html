@@ -18,6 +18,9 @@
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
     </script>
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 
 <body>
@@ -100,6 +103,86 @@
             </div>
 
         </div>
+
+        <!-- PRIORITY FILTER -->
+<div class="priority-section">
+
+    <h3>Decision Priorities</h3>
+
+    <p class="priority-description">
+        Adjust the importance of each factor. Total priority must equal 100%.
+    </p>
+
+    <div class="priority-item">
+        <div class="priority-label">
+            <span>Lowest Cost</span>
+            <span id="costValue">25%</span>
+        </div>
+
+        <input
+            type="range"
+            id="costPriority"
+            name="cost_priority"
+            min="0"
+            max="100"
+            value="25"
+        >
+    </div>
+
+    <div class="priority-item">
+        <div class="priority-label">
+            <span>Fastest Transit</span>
+            <span id="transitValue">25%</span>
+        </div>
+
+        <input
+            type="range"
+            id="transitPriority"
+            name="transit_priority"
+            min="0"
+            max="100"
+            value="25"
+        >
+    </div>
+
+    <div class="priority-item">
+        <div class="priority-label">
+            <span>Trade-Relationship Strength</span>
+            <span id="tradeValue">25%</span>
+        </div>
+
+        <input
+            type="range"
+            id="tradePriority"
+            name="trade_priority"
+            min="0"
+            max="100"
+            value="25"
+        >
+    </div>
+
+    <div class="priority-item">
+        <div class="priority-label">
+            <span>Weather Safety</span>
+            <span id="weatherValue">25%</span>
+        </div>
+
+        <input
+            type="range"
+            id="weatherPriority"
+            name="weather_priority"
+            min="0"
+            max="100"
+            value="25"
+        >
+    </div>
+
+    <div class="priority-total">
+        Total Priority:
+        <strong id="priorityTotal">100%</strong>
+    </div>
+
+</div>
 
         <button type="submit" class="analyze-btn">
             Analyze Shipment
@@ -190,6 +273,102 @@
         </div>
 
         {% endif %}
+
+        {% if freight_trend %}
+
+<div class="card freight-chart-card">
+
+    <h2>Freight Price Trend</h2>
+
+    <p class="chart-subtitle">
+        Monthly freight price trend for
+        <strong>{{ best_source.country }}</strong>
+        through
+        <strong>{{ best_source.export_port }}</strong>
+    </p>
+
+    <div class="freight-chart-container">
+        <canvas id="freightChart"></canvas>
+    </div>
+
+    <p class="chart-note">
+        Illustrative monthly freight trend for prototype demonstration.
+        Actual historical freight data can be integrated later.
+    </p>
+
+</div>
+
+<script>
+
+    const freightData = {{ freight_trend | tojson }};
+
+    const freightMonths = freightData.map(item => item.month);
+    const freightPrices = freightData.map(item => item.price);
+
+    const freightChart = document.getElementById('freightChart');
+
+    new Chart(freightChart, {
+
+        type: 'line',
+
+        data: {
+            labels: freightMonths,
+
+            datasets: [{
+                label: 'Freight Price ($/tonne)',
+                data: freightPrices,
+                borderWidth: 3,
+                tension: 0.35,
+                fill: false,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+                    display: true
+                },
+
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.parsed.y + '/tonne';
+                        }
+                    }
+                }
+            },
+
+            scales: {
+
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month'
+                    }
+                },
+
+                y: {
+                    beginAtZero: false,
+
+                    title: {
+                        display: true,
+                        text: 'Freight ($/tonne)'
+                    }
+                }
+            }
+        }
+    });
+
+</script>
+{% endif %}
 
 
         <!-- VESSEL RESULTS -->
@@ -433,56 +612,372 @@
 
             </div>
 
-<!-- ROUTE MAP -->
+{% if route %}
 
-<div class="route-map-container">
+<!-- ================= VOYAGE ROUTE MAP ================= -->
 
-    <div id="routeMap"></div>
+<div class="card route-card">
+
+    <div class="route-header">
+        <div>
+            <h2>Voyage Route</h2>
+            <p class="route-subtitle">
+                Estimated voyage from export port to destination
+            </p>
+        </div>
+
+        <div class="route-status">
+            <span class="status-dot"></span>
+            Route Estimated
+        </div>
+    </div>
+
+    <div class="route-summary">
+
+        <div class="route-stat">
+            <span class="stat-label">Origin</span>
+            <strong>{{ route.export_port }}</strong>
+        </div>
+
+        <div class="route-arrow">
+            →
+        </div>
+
+        <div class="route-stat">
+            <span class="stat-label">Destination</span>
+            <strong>{{ route.destination }}</strong>
+        </div>
+
+        <div class="route-stat">
+            <span class="stat-label">Distance</span>
+            <strong>{{ route.distance }} NM</strong>
+        </div>
+
+        <div class="route-stat">
+            <span class="stat-label">Transit Time</span>
+            <strong>{{ route.transit_days }} days</strong>
+        </div>
+
+        <div class="route-stat">
+            <span class="stat-label">Avg. Speed</span>
+            <strong>{{ route.speed }} knots</strong>
+        </div>
+
+    </div>
+
+    <div class="route-map-container">
+
+        <div id="routeMap"></div>
+
+        <div class="map-overlay">
+
+            <div class="legend-item">
+                <span class="legend-dot origin-dot"></span>
+                Export Port
+            </div>
+
+            <div class="legend-item">
+                <span class="legend-dot destination-dot"></span>
+                Destination
+            </div>
+
+        </div>
+
+    </div>
+
+    <p class="route-note">
+        Route shown is a prototype voyage estimate based on
+        maritime corridor waypoints and average vessel speed.
+        Actual maritime routing may vary.
+    </p>
 
 </div>
 
+
 <script>
 
-    const routeMap = L.map('routeMap').setView([20.27, 86.68], 4);
+    // ================= ROUTE DATA =================
+
+    const routePoints = [
+        {% for point in route.route_points %}
+        [
+            {{ point.lat }},
+            {{ point.lon }}
+        ]{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+
+    const start = routePoints[0];
+
+    const end =
+        routePoints[routePoints.length - 1];
+
+
+    // ================= MAP =================
+
+    const routeMap = L.map(
+        'routeMap',
+        {
+            zoomControl: true,
+            scrollWheelZoom: true
+        }
+    );
+
 
     L.tileLayer(
         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution:
+                '&copy; OpenStreetMap contributors',
+
+            maxZoom: 18
         }
     ).addTo(routeMap);
 
-    const start = [
-        {{ route.export_lat }},
-        {{ route.export_lon }}
-    ];
 
-    const end = [
-        {{ route.destination_lat }},
-        {{ route.destination_lon }}
-    ];
+    // ================= CUSTOM ICONS =================
 
-    L.marker(start)
-        .addTo(routeMap)
-        .bindPopup("<b>{{ route.export_port }}</b>")
-        .openPopup();
+    const originIcon = L.divIcon({
 
-    L.marker(end)
-        .addTo(routeMap)
-        .bindPopup("<b>{{ route.destination }}</b>");
+        className:
+            'custom-map-marker',
 
-    const routeLine = L.polyline(
-        [start, end],
-        {
-            weight: 4
-        }
-    ).addTo(routeMap);
+        html:
+            '<div class="origin-marker"></div>',
 
-    routeMap.fitBounds(routeLine.getBounds(), {
-        padding: [30, 30]
+        iconSize: [22, 22],
+
+        iconAnchor: [11, 11]
+
     });
 
+
+    const destinationIcon = L.divIcon({
+
+        className:
+            'custom-map-marker',
+
+        html:
+            '<div class="destination-marker"></div>',
+
+        iconSize: [22, 22],
+
+        iconAnchor: [11, 11]
+
+    });
+
+
+    // ================= ORIGIN =================
+
+    const originMarker =
+        L.marker(
+            start,
+            {
+                icon: originIcon
+            }
+        )
+        .addTo(routeMap);
+
+
+    originMarker.bindPopup(
+
+        "<div class='map-popup'>" +
+
+        "<strong>{{ route.export_port }}</strong>" +
+
+        "<br>" +
+
+        "<span>Export Port</span>" +
+
+        "</div>"
+
+    );
+
+
+    // ================= DESTINATION =================
+
+    const destinationMarker =
+        L.marker(
+            end,
+            {
+                icon: destinationIcon
+            }
+        )
+        .addTo(routeMap);
+
+
+    destinationMarker.bindPopup(
+
+        "<div class='map-popup'>" +
+
+        "<strong>{{ route.destination }}</strong>" +
+
+        "<br>" +
+
+        "<span>Destination Port</span>" +
+
+        "</div>"
+
+    );
+
+
+    // ================= PORT LABELS =================
+
+    L.marker(
+        start,
+        {
+
+            icon: L.divIcon({
+
+                className:
+                    'port-label',
+
+                html:
+                    '<div>{{ route.export_port }}</div>',
+
+                iconSize: [130, 25],
+
+                iconAnchor: [65, -10]
+
+            })
+
+        }
+
+    ).addTo(routeMap);
+
+
+    L.marker(
+        end,
+        {
+
+            icon: L.divIcon({
+
+                className:
+                    'port-label',
+
+                html:
+                    '<div>{{ route.destination }}</div>',
+
+                iconSize: [130, 25],
+
+                iconAnchor: [65, -10]
+
+            })
+
+        }
+
+    ).addTo(routeMap);
+
+
+    // ================= MARITIME ROUTE =================
+
+    const routeLine =
+        L.polyline(
+            routePoints,
+            {
+
+                weight: 4,
+
+                opacity: 0.9,
+
+                dashArray: '10, 8',
+
+                lineJoin: 'round',
+
+                lineCap: 'round'
+
+            }
+        )
+        .addTo(routeMap);
+
+
+    // ================= ROUTE WAYPOINTS =================
+
+    for (
+        let i = 1;
+        i < routePoints.length - 1;
+        i++
+    ) {
+
+        L.circleMarker(
+
+            routePoints[i],
+
+            {
+
+                radius: 3,
+
+                opacity: 0.45,
+
+                fillOpacity: 0.45
+
+            }
+
+        ).addTo(routeMap);
+
+    }
+
+
+    // ================= DIRECTION ARROW =================
+
+    const middleIndex =
+        Math.floor(
+            routePoints.length / 2
+        );
+
+
+    const middlePoint =
+        routePoints[middleIndex];
+
+
+    L.marker(
+
+        middlePoint,
+
+        {
+
+            icon: L.divIcon({
+
+                className:
+                    'route-arrow-marker',
+
+                html:
+                    '<div class="route-direction-arrow">➜</div>',
+
+                iconSize: [35, 35],
+
+                iconAnchor: [17, 17]
+
+            })
+
+        }
+
+    ).addTo(routeMap);
+
+
+    // ================= FIT ROUTE =================
+
+    routeMap.fitBounds(
+
+        routeLine.getBounds(),
+
+        {
+
+            padding: [45, 45]
+
+        }
+
+    );
+
+
+    // ================= OPEN ORIGIN =================
+
+    originMarker.openPopup();
+
 </script>
+
+{% endif %}
 
             <div class="route-note">
 
