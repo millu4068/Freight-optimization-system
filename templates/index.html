@@ -1018,6 +1018,97 @@
 
     </div>
 
+<script>
+    const sliders = [
+        document.getElementById("costPriority"),
+        document.getElementById("transitPriority"),
+        document.getElementById("tradePriority"),
+        document.getElementById("weatherPriority")
+    ];
+
+    const values = [
+        document.getElementById("costValue"),
+        document.getElementById("transitValue"),
+        document.getElementById("tradeValue"),
+        document.getElementById("weatherValue")
+    ];
+
+    const totalDisplay = document.getElementById("priorityTotal");
+
+    function updatePriorities(changedIndex) {
+
+        let changedValue = Number(sliders[changedIndex].value);
+
+        let remaining = 100 - changedValue;
+
+        let otherIndexes = [];
+
+        for (let i = 0; i < sliders.length; i++) {
+            if (i !== changedIndex) {
+                otherIndexes.push(i);
+            }
+        }
+
+        let oldOtherTotal = 0;
+
+        otherIndexes.forEach(i => {
+            oldOtherTotal += Number(sliders[i].value);
+        });
+
+        otherIndexes.forEach(i => {
+
+            let oldValue = Number(sliders[i].value);
+
+            let newValue;
+
+            if (oldOtherTotal === 0) {
+                newValue = remaining / otherIndexes.length;
+            } else {
+                newValue = (oldValue / oldOtherTotal) * remaining;
+            }
+
+            sliders[i].value = Math.round(newValue);
+        });
+
+        // Fix rounding difference
+        let total = sliders.reduce(
+            (sum, slider) => sum + Number(slider.value),
+            0
+        );
+
+        let difference = 100 - total;
+
+        if (difference !== 0) {
+            let lastIndex = otherIndexes[otherIndexes.length - 1];
+
+            sliders[lastIndex].value =
+                Number(sliders[lastIndex].value) + difference;
+        }
+
+        // Update displayed percentages
+        sliders.forEach((slider, i) => {
+            values[i].textContent = slider.value + "%";
+        });
+
+        totalDisplay.textContent = "100%";
+    }
+
+    sliders.forEach((slider, index) => {
+
+        slider.addEventListener("input", function () {
+            updatePriorities(index);
+        });
+
+    });
+
+    // Initial values
+    sliders.forEach((slider, i) => {
+        values[i].textContent = slider.value + "%";
+    });
+
+    totalDisplay.textContent = "100%";
+</script>
+
 </body>
 
 </html>

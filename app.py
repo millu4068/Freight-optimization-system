@@ -103,7 +103,6 @@ def get_weather(destination):
 # ================= ROUTE ANALYSIS =================
 
 # Destination port coordinates
-
 port_coordinates = {
     "Paradip": (20.27, 86.68),
     "Vizag": (17.69, 83.22),
