@@ -616,7 +616,95 @@ def analyze():
     # Weather analysis
     # -----------------------------
 
+
     weather = get_weather(destination)
+
+    import time
+
+weather_cache = {}
+
+def get_weather(destination):
+
+    # Cache for 10 minutes
+    cache_time = 600
+
+    if destination in weather_cache:
+        saved_time, saved_data = weather_cache[destination]
+
+        if time.time() - saved_time < cache_time:
+            return saved_data
+
+    latitude, longitude = port_coordinates[destination]
+
+    url = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={latitude}"
+        f"&longitude={longitude}"
+        "&current=temperature_2m,wind_speed_10m,precipitation"
+        "&daily=precipitation_probability_max"
+        "&forecast_days=1"
+        "&timezone=auto"
+    )
+
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+
+        data = response.json()
+
+        current = data.get("current", {})
+        daily = data.get("daily", {})
+
+        temperature = current.get("temperature_2m")
+        wind_speed = current.get("wind_speed_10m")
+        precipitation = current.get("precipitation")
+
+        rain_probability_list = daily.get(
+            "precipitation_probability_max", []
+        )
+
+        rain_probability = (
+            rain_probability_list[0]
+            if rain_probability_list
+            else 0
+        )
+
+        if wind_speed is None:
+            risk = "Unavailable"
+        elif wind_speed >= 40 or rain_probability >= 80:
+            risk = "HIGH"
+        elif wind_speed >= 25 or rain_probability >= 50:
+            risk = "MODERATE"
+        else:
+            risk = "LOW"
+
+        weather_data = {
+            "temperature": temperature,
+            "wind_speed": wind_speed,
+            "precipitation": precipitation,
+            "rain_probability": rain_probability,
+            "risk": risk
+        }
+
+        # Save result in cache
+        weather_cache[destination] = (
+            time.time(),
+            weather_data
+        )
+
+        return weather_data
+
+    except Exception as e:
+
+        print("WEATHER ERROR:", destination, e)
+
+        return {
+            "temperature": "N/A",
+            "wind_speed": "N/A",
+            "precipitation": "N/A",
+            "rain_probability": "N/A",
+            "risk": "Unavailable"
+        }
 
     # -----------------------------
     # Source country ranking
