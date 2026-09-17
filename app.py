@@ -442,15 +442,19 @@ def calculate_weather_risk(
 def get_weather_predictor(export_port, destination):
 
     from time import time
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
 
     cache_key = f"{export_port}|{destination}"
     now = time()
 
+    # Keep weather data for 10 minutes
     if cache_key in weather_cache:
 
         cached_time, cached_data = weather_cache[cache_key]
 
-        if now - cached_time < 60:
+        if now - cached_time < 600:
+            print("WEATHER CACHE USED:", cache_key)
             return cached_data
 
     route = get_route(export_port, destination)
@@ -516,16 +520,53 @@ def get_weather_predictor(export_port, destination):
         "&cell_selection=sea"
     )
 
+    # -------------------------------------------------
+    # Create retry session
+    # -------------------------------------------------
+
+    session = requests.Session()
+
+    retry_strategy = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        status=3,
+        backoff_factor=2,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+
+    adapter = HTTPAdapter(
+        max_retries=retry_strategy
+    )
+
+    session.mount(
+        "https://",
+        adapter
+    )
+
+    session.headers.update({
+        "User-Agent": "Freight-Optimization-System/1.0"
+    })
+
+    # -------------------------------------------------
+    # Weather API
+    # -------------------------------------------------
+
     try:
 
-        weather_response = requests.get(
+        print("WEATHER API REQUEST:", export_port, "->", destination)
+
+        weather_response = session.get(
             weather_url,
-            timeout=15
+            timeout=20
         )
 
         weather_response.raise_for_status()
 
         weather_data = weather_response.json()
+
+        print("WEATHER API SUCCESS")
 
     except Exception as e:
 
@@ -536,18 +577,26 @@ def get_weather_predictor(export_port, destination):
     if isinstance(weather_data, dict):
         weather_data = [weather_data]
 
+    # -------------------------------------------------
+    # Marine API
+    # -------------------------------------------------
+
     marine_data = []
 
     try:
 
-        marine_response = requests.get(
+        print("MARINE API REQUEST:", export_port, "->", destination)
+
+        marine_response = session.get(
             marine_url,
-            timeout=15
+            timeout=20
         )
 
         marine_response.raise_for_status()
 
         marine_data = marine_response.json()
+
+        print("MARINE API SUCCESS")
 
         if isinstance(marine_data, dict):
             marine_data = [marine_data]
@@ -556,7 +605,14 @@ def get_weather_predictor(export_port, destination):
 
         print("MARINE API WARNING:", e)
 
+        # Marine data is optional.
+        # Weather should still work.
+
         marine_data = []
+
+    # -------------------------------------------------
+    # Process weather results
+    # -------------------------------------------------
 
     results = []
 
@@ -669,26 +725,50 @@ def get_weather_predictor(export_port, destination):
         )
 
         results.append({
+
             "name": location["name"],
+
             "type": location["type"],
+
             "latitude": location["lat"],
+
             "longitude": location["lon"],
+
             "temperature": temperature,
+
             "wind_speed": wind_speed,
+
             "wave_height": wave_height,
+
             "wave_period": wave_period,
+
             "ocean_current": ocean_current,
+
             "precipitation": precipitation,
-            "weather": weather_description(weather_code),
+
+            "weather": weather_description(
+                weather_code
+            ),
+
             "max_wind_6h": max_wind,
+
             "max_wave_6h": max_wave,
-            "rain_probability_6h": max_rain_probability,
-            "severe_weather_expected": severe_weather_expected,
+
+            "rain_probability_6h":
+                max_rain_probability,
+
+            "severe_weather_expected":
+                severe_weather_expected,
+
             "risk": risk
         })
 
     if not results:
         return None
+
+    # -------------------------------------------------
+    # Overall risk
+    # -------------------------------------------------
 
     risk_order = {
         "LOW": 1,
@@ -710,14 +790,26 @@ def get_weather_predictor(export_port, destination):
     )
 
     result = {
+
         "locations": results,
+
         "overall_risk": overall_risk,
+
         "updated_at": updated_at
     }
+
+    # -------------------------------------------------
+    # Save in cache for 10 minutes
+    # -------------------------------------------------
 
     weather_cache[cache_key] = (
         now,
         result
+    )
+
+    print(
+        "WEATHER DATA CACHED FOR 10 MINUTES:",
+        cache_key
     )
 
     return result
