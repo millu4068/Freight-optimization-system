@@ -938,9 +938,7 @@ li {
 
 }
 
-/* =====================================================
-   REAL-TIME WEATHER PREDICTOR
-===================================================== */
+/* ================= WEATHER PREDICTOR ================= */
 
 .weather-predictor-card {
     margin-top: 25px;
@@ -984,9 +982,6 @@ li {
     box-shadow: 0 0 10px rgba(57, 217, 138, 0.8);
 }
 
-
-/* Overall risk */
-
 .weather-overall {
     display: flex;
     justify-content: space-between;
@@ -1016,9 +1011,6 @@ li {
     font-weight: 700;
 }
 
-
-/* Risk colours */
-
 .risk-low {
     background: rgba(57,217,138,.12);
     color: #39d98a;
@@ -1037,9 +1029,6 @@ li {
     border: 1px solid rgba(255,92,122,.25);
 }
 
-
-/* Refresh button */
-
 .weather-refresh-btn {
     border: 1px solid rgba(105,180,255,.25);
     background: rgba(105,180,255,.08);
@@ -1055,13 +1044,9 @@ li {
     background: rgba(105,180,255,.16);
 }
 
-
-/* Location cards */
-
 .weather-location-grid {
     display: grid;
-    grid-template-columns:
-        repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 15px;
 }
 
@@ -1097,13 +1082,9 @@ li {
     font-weight: 700;
 }
 
-
-/* Metrics */
-
 .weather-metrics {
     display: grid;
-    grid-template-columns:
-        1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
 }
 
@@ -1124,9 +1105,6 @@ li {
     font-size: 13px;
 }
 
-
-/* Six hour outlook */
-
 .weather-outlook {
     display: flex;
     flex-direction: column;
@@ -1142,9 +1120,6 @@ li {
     opacity: 1;
     margin-bottom: 3px;
 }
-
-
-/* Footer */
 
 .weather-footer {
     display: flex;
@@ -1164,9 +1139,6 @@ li {
     opacity: .45;
 }
 
-
-/* Loading / error */
-
 .weather-loading,
 .weather-error {
     grid-column: 1 / -1;
@@ -1174,9 +1146,6 @@ li {
     text-align: center;
     opacity: .6;
 }
-
-
-/* Mobile */
 
 @media (max-width: 900px) {
 

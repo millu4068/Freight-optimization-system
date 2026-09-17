@@ -12,6 +12,7 @@ def read_csv(filename):
     with open(filename, "r", newline="", encoding="utf-8") as file:
         return list(csv.DictReader(file))
 
+
 # ================= ROUTE ANALYSIS =================
 
 # Destination port coordinates
@@ -48,7 +49,6 @@ export_port_coordinates = {
 # -------------------------------------------------
 
 export_port_country = {
-
     "Newcastle": "Australia",
     "Port Hedland": "Australia",
     "Gladstone": "Australia",
@@ -72,18 +72,9 @@ export_port_country = {
 # -------------------------------------------------
 # Offshore route corridors
 # -------------------------------------------------
-#
-# These are visual maritime corridors.
-# They are NOT navigation-grade routes.
-#
-# Destination-specific Indian Ocean approaches
-# are used so that all Indian ports don't share
-# exactly the same final route.
-# -------------------------------------------------
 
 base_corridors = {
 
-    # Australia
     "Australia": [
         (-25.0, 150.0),
         (-22.0, 140.0),
@@ -96,7 +87,6 @@ base_corridors = {
         (12.0, 92.0)
     ],
 
-    # Indonesia
     "Indonesia": [
         (-5.0, 110.0),
         (0.0, 105.0),
@@ -106,7 +96,6 @@ base_corridors = {
         (13.0, 91.0)
     ],
 
-    # Mozambique
     "Mozambique": [
         (-25.0, 40.0),
         (-27.0, 48.0),
@@ -119,7 +108,6 @@ base_corridors = {
         (12.0, 91.0)
     ],
 
-    # USA Gulf -> Atlantic -> Cape of Good Hope
     "USA": [
         (25.0, -80.0),
         (15.0, -65.0),
@@ -136,7 +124,6 @@ base_corridors = {
         (12.0, 91.0)
     ],
 
-    # Russia Pacific
     "Russia": [
         (40.0, 140.0),
         (32.0, 135.0),
@@ -149,7 +136,6 @@ base_corridors = {
         (12.0, 92.0)
     ],
 
-    # Brazil -> Cape -> Indian Ocean
     "Brazil": [
         (-10.0, -35.0),
         (-20.0, -20.0),
@@ -293,13 +279,10 @@ def get_route(export_port, destination):
         []
     )
 
-    # Build complete route
     route_points = [start]
 
     route_points.extend(base_route)
 
-    # Remove duplicate point if corridor
-    # and approach start at same location
     for point in final_approach:
 
         if not route_points:
@@ -318,8 +301,6 @@ def get_route(export_port, destination):
         if distance > 10:
             route_points.append(point)
 
-    # Always make sure the exact destination
-    # is the final point
     destination_point = port_coordinates[destination]
 
     previous = route_points[-1]
@@ -332,10 +313,6 @@ def get_route(export_port, destination):
     ) > 1:
 
         route_points.append(destination_point)
-
-    # -------------------------------------------------
-    # Calculate total distance
-    # -------------------------------------------------
 
     total_distance = 0
 
@@ -351,7 +328,6 @@ def get_route(export_port, destination):
             lon2
         )
 
-    # Prototype bulk carrier speed
     average_speed = 13
 
     transit_hours = total_distance / average_speed
@@ -360,7 +336,6 @@ def get_route(export_port, destination):
     return {
 
         "export_port": export_port,
-
         "destination": destination,
 
         "export_lat": start[0],
@@ -387,12 +362,11 @@ def get_route(export_port, destination):
         ]
     }
 
+
 # =========================================================
 # REAL-TIME MARINE WEATHER PREDICTOR
 # =========================================================
 
-# Small server-side cache to reduce API rate-limit problems.
-# Data older than 60 seconds is refreshed automatically.
 weather_cache = {}
 
 
@@ -434,7 +408,6 @@ def calculate_weather_risk(
 
     score = 0
 
-    # Wind contribution
     if wind_speed >= 45:
         score += 3
     elif wind_speed >= 30:
@@ -442,7 +415,6 @@ def calculate_weather_risk(
     elif wind_speed >= 20:
         score += 1
 
-    # Wave contribution
     if wave_height is not None:
         if wave_height >= 4:
             score += 3
@@ -451,13 +423,11 @@ def calculate_weather_risk(
         elif wave_height >= 1.5:
             score += 1
 
-    # Rain probability
     if rain_probability >= 80:
         score += 2
     elif rain_probability >= 50:
         score += 1
 
-    # Severe weather
     if weather_code in [95, 96, 99]:
         score += 3
 
@@ -476,8 +446,8 @@ def get_weather_predictor(export_port, destination):
     cache_key = f"{export_port}|{destination}"
     now = time()
 
-    # Return recent data instead of repeatedly hitting the public API.
     if cache_key in weather_cache:
+
         cached_time, cached_data = weather_cache[cache_key]
 
         if now - cached_time < 60:
@@ -490,7 +460,6 @@ def get_weather_predictor(export_port, destination):
 
     route_points = route["route_points"]
 
-    # Three representative points along the voyage.
     start = route_points[0]
     middle = route_points[len(route_points) // 2]
     end = route_points[-1]
@@ -526,10 +495,6 @@ def get_weather_predictor(export_port, destination):
         for location in locations
     )
 
-    # =====================================================
-    # WEATHER API
-    # =====================================================
-
     weather_url = (
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitudes}"
@@ -539,10 +504,6 @@ def get_weather_predictor(export_port, destination):
         "&forecast_hours=6"
         "&timezone=auto"
     )
-
-    # =====================================================
-    # MARINE API
-    # =====================================================
 
     marine_url = (
         "https://marine-api.open-meteo.com/v1/marine"
@@ -555,50 +516,52 @@ def get_weather_predictor(export_port, destination):
         "&cell_selection=sea"
     )
 
-    # Weather is the essential part. Marine data is optional because
-    # a port coordinate can occasionally fall outside the marine grid.
     try:
+
         weather_response = requests.get(
             weather_url,
             timeout=15
         )
+
         weather_response.raise_for_status()
+
         weather_data = weather_response.json()
 
     except Exception as e:
+
         print("WEATHER API ERROR:", e)
+
         return None
 
-    # Open-Meteo returns one object for one coordinate and a list for
-    # multiple coordinates. Normalize both cases to a list.
     if isinstance(weather_data, dict):
         weather_data = [weather_data]
 
     marine_data = []
 
     try:
+
         marine_response = requests.get(
             marine_url,
             timeout=15
         )
+
         marine_response.raise_for_status()
+
         marine_data = marine_response.json()
 
         if isinstance(marine_data, dict):
             marine_data = [marine_data]
 
     except Exception as e:
-        # Do NOT fail the complete weather predictor if marine data
-        # is unavailable for one or more points.
+
         print("MARINE API WARNING:", e)
+
         marine_data = []
 
     results = []
 
     for index, location in enumerate(locations):
 
-        # If the API returned fewer entries than expected, skip only
-        # that location instead of crashing the whole endpoint.
         if index >= len(weather_data):
             continue
 
@@ -613,10 +576,6 @@ def get_weather_predictor(export_port, destination):
             "hourly",
             {}
         )
-
-        # -----------------------------------------
-        # Current weather
-        # -----------------------------------------
 
         temperature = current_weather.get(
             "temperature_2m"
@@ -633,10 +592,6 @@ def get_weather_predictor(export_port, destination):
         precipitation = current_weather.get(
             "precipitation"
         )
-
-        # -----------------------------------------
-        # 6-hour weather outlook
-        # -----------------------------------------
 
         future_winds = hourly_weather.get(
             "wind_speed_10m",
@@ -665,10 +620,6 @@ def get_weather_predictor(export_port, destination):
             code in [95, 96, 99]
             for code in future_weather_codes
         )
-
-        # -----------------------------------------
-        # Marine data (optional)
-        # -----------------------------------------
 
         wave_height = None
         wave_period = None
@@ -710,10 +661,6 @@ def get_weather_predictor(export_port, destination):
                 future_waves
             ) if future_waves else wave_height
 
-        # -----------------------------------------
-        # Risk
-        # -----------------------------------------
-
         risk = calculate_weather_risk(
             max_wind,
             max_wave,
@@ -732,9 +679,7 @@ def get_weather_predictor(export_port, destination):
             "wave_period": wave_period,
             "ocean_current": ocean_current,
             "precipitation": precipitation,
-            "weather": weather_description(
-                weather_code
-            ),
+            "weather": weather_description(weather_code),
             "max_wind_6h": max_wind,
             "max_wave_6h": max_wave,
             "rain_probability_6h": max_rain_probability,
@@ -744,10 +689,6 @@ def get_weather_predictor(export_port, destination):
 
     if not results:
         return None
-
-    # -----------------------------------------
-    # Overall voyage risk
-    # -----------------------------------------
 
     risk_order = {
         "LOW": 1,
@@ -781,12 +722,10 @@ def get_weather_predictor(export_port, destination):
 
     return result
 
+
 # ================= FREIGHT PRICE TREND =================
 
 def get_freight_trend(export_port, material):
-
-    # Demo monthly freight prices ($/tonne)
-    # Replace these values with actual historical data later
 
     freight_data = {
 
@@ -858,12 +797,14 @@ def get_freight_trend(export_port, material):
         for i in range(12)
     ]
 
+
 # -----------------------------
 # Home page
 # -----------------------------
 @app.route("/")
 def home():
     return render_template("index.html")
+
 
 # =========================================================
 # WEATHER API ROUTE
@@ -917,25 +858,20 @@ def analyze():
     destination = request.form["destination"]
 
     cost_priority = float(
-    request.form.get("cost_priority", 25)
-)
+        request.form.get("cost_priority", 25)
+    )
 
     transit_priority = float(
-    request.form.get("transit_priority", 25)
-)
+        request.form.get("transit_priority", 25)
+    )
 
     trade_priority = float(
-    request.form.get("trade_priority", 25)
-)
+        request.form.get("trade_priority", 25)
+    )
 
-    # Read datasets
     sourcing_data = read_csv("data/sourcing.csv")
     vessel_data = read_csv("data/vessels.csv")
     port_data = read_csv("data/ports.csv")
-
-    # -----------------------------
-    # Find destination port
-    # -----------------------------
 
     selected_port = None
 
@@ -948,14 +884,9 @@ def analyze():
     if selected_port is None:
         return "Destination port not found."
 
-    # Convert port restrictions
     max_loa = float(selected_port["Max_LOA"])
     max_beam = float(selected_port["Max_Beam"])
     max_draft = float(selected_port["Max_Draft"])
-
-    # -----------------------------
-    # Source country ranking
-    # -----------------------------
 
     source_results = []
 
@@ -987,10 +918,6 @@ def analyze():
     source_results.sort(
         key=lambda x: x["total_per_tonne"]
     )
-
-    # -----------------------------
-    # Vessel filtering
-    # -----------------------------
 
     eligible_vessels = []
     rejected_vessels = []
@@ -1038,29 +965,21 @@ def analyze():
                 "reason": ", ".join(reasons)
             })
 
-    # -----------------------------
-    # Best source
-    # -----------------------------
-
     best_source = source_results[0] if source_results else None
     route = None
     freight_trend = None
 
     if best_source:
+
         freight_trend = get_freight_trend(
-        best_source["export_port"],
-        material
-    )
+            best_source["export_port"],
+            material
+        )
 
-    if best_source:
         route = get_route(
-        best_source["export_port"],
-        destination
-    )
-
-    # -----------------------------
-    # Final recommendation
-    # -----------------------------
+            best_source["export_port"],
+            destination
+        )
 
     if best_source and eligible_vessels:
 
@@ -1083,29 +1002,25 @@ def analyze():
 
         recommendation = "No suitable sourcing data found."
 
-    # -----------------------------
-    # Send results to HTML
-    # -----------------------------
-
     return render_template(
-    "index.html",
-    material=material,
-    quantity=quantity,
-    origin=origin,
-    destination=destination,
-    port=selected_port,
-    source_results=source_results,
-    best_source=best_source,
-    eligible_vessels=eligible_vessels,
-    rejected_vessels=rejected_vessels,
-    recommendation=recommendation,
-    route=route,
-    freight_trend=freight_trend,
+        "index.html",
+        material=material,
+        quantity=quantity,
+        origin=origin,
+        destination=destination,
+        port=selected_port,
+        source_results=source_results,
+        best_source=best_source,
+        eligible_vessels=eligible_vessels,
+        rejected_vessels=rejected_vessels,
+        recommendation=recommendation,
+        route=route,
+        freight_trend=freight_trend,
+        cost_priority=cost_priority,
+        transit_priority=transit_priority,
+        trade_priority=trade_priority,
+    )
 
-    cost_priority=cost_priority,
-    transit_priority=transit_priority,
-    trade_priority=trade_priority,
-)
 
 if __name__ == "__main__":
     app.run(debug=True)

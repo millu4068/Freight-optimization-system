@@ -25,1430 +25,1812 @@
 
 <body>
 
-    <div class="container">
+<div class="container">
 
-        <h1>Freight Optimization System</h1>
+    <h1>Freight Optimization System</h1>
 
-        <p class="subtitle">
-            Intelligent sourcing, freight and vessel recommendation
+    <p class="subtitle">
+        Intelligent sourcing, freight and vessel recommendation
+    </p>
+
+
+    <!-- INPUT FORM -->
+
+    <div class="card shipment-card">
+
+        <div class="section-title">
+            <span class="section-icon">🚢</span>
+
+            <div>
+                <h2>Shipment Details</h2>
+                <p>Enter your cargo and voyage requirements</p>
+            </div>
+        </div>
+
+
+        <form action="/analyze" method="POST">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+
+                    <label>Raw Material</label>
+
+                    <select name="material">
+
+                        <option value="Coal">Coal</option>
+                        <option value="Iron Ore">Iron Ore</option>
+                        <option value="Limestone">Limestone</option>
+                        <option value="Bauxite">Bauxite</option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Quantity (Tonnes)</label>
+
+                    <input
+                        type="number"
+                        name="quantity"
+                        placeholder="Example: 70000"
+                        min="1"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Origin Country</label>
+
+                    <select name="origin">
+
+                        <option value="All">All Source Countries</option>
+                        <option value="Australia">Australia</option>
+                        <option value="USA">USA</option>
+                        <option value="Mozambique">Mozambique</option>
+                        <option value="Russia">Russia</option>
+                        <option value="Indonesia">Indonesia</option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Destination Port</label>
+
+                    <select name="destination">
+
+                        <option value="Paradip">Paradip</option>
+                        <option value="Vizag">Vizag</option>
+                        <option value="Gangavaram">Gangavaram</option>
+                        <option value="Gopalpur">Gopalpur</option>
+                        <option value="Dhamra">Dhamra</option>
+                        <option value="Sagar-Sandheads">Sagar-Sandheads</option>
+                        <option value="Haldia">Haldia</option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- PRIORITY FILTER -->
+
+            <div class="priority-section">
+
+                <h3>Decision Priorities</h3>
+
+                <p class="priority-description">
+                    Adjust the importance of each factor. Total priority must equal 100%.
+                </p>
+
+
+                <div class="priority-item">
+
+                    <div class="priority-label">
+
+                        <span>Lowest Cost</span>
+
+                        <span id="costValue">25%</span>
+
+                    </div>
+
+                    <input
+                        type="range"
+                        id="costPriority"
+                        name="cost_priority"
+                        min="0"
+                        max="100"
+                        value="25"
+                    >
+
+                </div>
+
+
+                <div class="priority-item">
+
+                    <div class="priority-label">
+
+                        <span>Fastest Transit</span>
+
+                        <span id="transitValue">25%</span>
+
+                    </div>
+
+                    <input
+                        type="range"
+                        id="transitPriority"
+                        name="transit_priority"
+                        min="0"
+                        max="100"
+                        value="25"
+                    >
+
+                </div>
+
+
+                <div class="priority-item">
+
+                    <div class="priority-label">
+
+                        <span>Trade-Relationship Strength</span>
+
+                        <span id="tradeValue">25%</span>
+
+                    </div>
+
+                    <input
+                        type="range"
+                        id="tradePriority"
+                        name="trade_priority"
+                        min="0"
+                        max="100"
+                        value="25"
+                    >
+
+                </div>
+
+
+                <div class="priority-total">
+
+                    Total Priority:
+                    <strong id="priorityTotal">100%</strong>
+
+                </div>
+
+            </div>
+
+
+            <button type="submit" class="analyze-btn">
+
+                Analyze Shipment
+
+                <span>→</span>
+
+            </button>
+
+        </form>
+
+    </div>
+
+
+    {% if source_results %}
+
+    <!-- SOURCE RESULTS -->
+
+    <div class="card">
+
+        <h2>Source Country Analysis</h2>
+
+        <table>
+
+            <tr>
+
+                <th>Country</th>
+                <th>Material Price</th>
+                <th>Freight</th>
+                <th>Total / Tonne</th>
+                <th>Transit</th>
+                <th>Risk</th>
+
+            </tr>
+
+
+            {% for source in source_results %}
+
+            <tr>
+
+                <td>{{ source.country }}</td>
+
+                <td>${{ source.material_price }}</td>
+
+                <td>${{ source.freight }}</td>
+
+                <td>
+                    <b>${{ source.total_per_tonne }}</b>
+                </td>
+
+                <td>
+                    {{ source.transit_days }} days
+                </td>
+
+                <td>
+                    {{ source.risk }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+
+    <!-- BEST SOURCE -->
+
+    {% if best_source %}
+
+    <div class="card recommendation">
+
+        <h2>Recommended Source</h2>
+
+        <h3>
+            {{ best_source.country }}
+        </h3>
+
+        <p>
+            Export Port:
+            <b>{{ best_source.export_port }}</b>
+        </p>
+
+        <p>
+            Total Landed Cost:
+            <b>${{ best_source.total_per_tonne }}/tonne</b>
+        </p>
+
+        <p>
+            Estimated Total:
+            <b>${{ "{:,.0f}".format(best_source.total_cost) }}</b>
+        </p>
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- FREIGHT TREND -->
+
+    {% if freight_trend %}
+
+    <div class="card freight-chart-card">
+
+        <h2>Freight Price Trend</h2>
+
+        <p class="chart-subtitle">
+
+            Monthly freight price trend for
+            <strong>{{ best_source.country }}</strong>
+            through
+            <strong>{{ best_source.export_port }}</strong>
+
         </p>
 
 
-        <!-- INPUT FORM -->
+        <div class="freight-chart-container">
 
-        <div class="card shipment-card">
-    <div class="section-title">
-        <span class="section-icon">🚢</span>
-        <div>
-            <h2>Shipment Details</h2>
-            <p>Enter your cargo and voyage requirements</p>
+            <canvas id="freightChart"></canvas>
+
         </div>
+
+
+        <p class="chart-note">
+
+            Illustrative monthly freight trend for prototype demonstration.
+            Actual historical freight data can be integrated later.
+
+        </p>
+
     </div>
 
-    <form action="/analyze" method="POST">
 
-        <div class="form-grid">
+    <script>
 
-            <div class="form-group">
-                <label>Raw Material</label>
+        const freightData =
+            {{ freight_trend | tojson }};
 
-                <select name="material">
-                    <option value="Coal">Coal</option>
-                    <option value="Iron Ore">Iron Ore</option>
-                    <option value="Limestone">Limestone</option>
-                    <option value="Bauxite">Bauxite</option>
-                </select>
-            </div>
+        const freightMonths =
+            freightData.map(item => item.month);
 
+        const freightPrices =
+            freightData.map(item => item.price);
 
-            <div class="form-group">
-                <label>Quantity (Tonnes)</label>
-
-                <input
-                    type="number"
-                    name="quantity"
-                    placeholder="Example: 70000"
-                    min="1"
-                    required
-                >
-            </div>
+        const freightChart =
+            document.getElementById('freightChart');
 
 
-            <div class="form-group">
-                <label>Origin Country</label>
+        new Chart(
+            freightChart,
+            {
 
-                <select name="origin">
-                    <option value="All">All Source Countries</option>
-                    <option value="Australia">Australia</option>
-                    <option value="USA">USA</option>
-                    <option value="Mozambique">Mozambique</option>
-                    <option value="Russia">Russia</option>
-                    <option value="Indonesia">Indonesia</option>
-                </select>
-            </div>
+                type: 'line',
 
+                data: {
 
-            <div class="form-group">
-                <label>Destination Port</label>
+                    labels: freightMonths,
 
-                <select name="destination">
-                    <option value="Paradip">Paradip</option>
-                    <option value="Vizag">Vizag</option>
-                    <option value="Gangavaram">Gangavaram</option>
-                    <option value="Gopalpur">Gopalpur</option>
-                    <option value="Dhamra">Dhamra</option>
-                    <option value="Sagar-Sandheads">Sagar-Sandheads</option>
-                    <option value="Haldia">Haldia</option>
-                </select>
-            </div>
+                    datasets: [{
 
-        </div>
+                        label: 'Freight Price ($/tonne)',
 
-        <!-- PRIORITY FILTER -->
-<div class="priority-section">
+                        data: freightPrices,
 
-    <h3>Decision Priorities</h3>
+                        borderWidth: 3,
 
-    <p class="priority-description">
-        Adjust the importance of each factor. Total priority must equal 100%.
-    </p>
+                        tension: 0.35,
 
-    <div class="priority-item">
-        <div class="priority-label">
-            <span>Lowest Cost</span>
-            <span id="costValue">25%</span>
-        </div>
+                        fill: false,
 
-        <input
-            type="range"
-            id="costPriority"
-            name="cost_priority"
-            min="0"
-            max="100"
-            value="25"
-        >
-    </div>
+                        pointRadius: 4,
 
-    <div class="priority-item">
-        <div class="priority-label">
-            <span>Fastest Transit</span>
-            <span id="transitValue">25%</span>
-        </div>
+                        pointHoverRadius: 6
 
-        <input
-            type="range"
-            id="transitPriority"
-            name="transit_priority"
-            min="0"
-            max="100"
-            value="25"
-        >
-    </div>
+                    }]
 
-    <div class="priority-item">
-        <div class="priority-label">
-            <span>Trade-Relationship Strength</span>
-            <span id="tradeValue">25%</span>
-        </div>
+                },
 
-        <input
-            type="range"
-            id="tradePriority"
-            name="trade_priority"
-            min="0"
-            max="100"
-            value="25"
-        >
-    </div>
+                options: {
 
-    <div class="priority-total">
-        Total Priority:
-        <strong id="priorityTotal">100%</strong>
-    </div>
+                    responsive: true,
 
-</div>
+                    maintainAspectRatio: false,
 
-        <button type="submit" class="analyze-btn">
-            Analyze Shipment
-            <span>→</span>
-        </button>
+                    plugins: {
 
-    </form>
-</div>
+                        legend: {
+                            display: true
+                        },
+
+                        tooltip: {
+
+                            callbacks: {
+
+                                label: function(context) {
+
+                                    return '$' +
+                                        context.parsed.y +
+                                        '/tonne';
+
+                                }
+
+                            }
+
+                        }
+
+                    },
+
+                    scales: {
+
+                        x: {
+
+                            title: {
+
+                                display: true,
+
+                                text: 'Month'
+
+                            }
+
+                        },
+
+                        y: {
+
+                            beginAtZero: false,
+
+                            title: {
+
+                                display: true,
+
+                                text: 'Freight ($/tonne)'
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    </script>
+
+    {% endif %}
 
 
-        {% if source_results %}
+    <!-- VESSEL RESULTS -->
 
-        <!-- SOURCE RESULTS -->
+    <div class="card">
 
-        <div class="card">
+        <h2>Vessel Filtering</h2>
 
-            <h2>Source Country Analysis</h2>
+        <p>
+            Destination:
+            <b>{{ destination }}</b>
+        </p>
 
-            <table>
-
-                <tr>
-                    <th>Country</th>
-                    <th>Material Price</th>
-                    <th>Freight</th>
-                    <th>Total / Tonne</th>
-                    <th>Transit</th>
-                    <th>Risk</th>
-                </tr>
-
-                {% for source in source_results %}
-
-                <tr>
-
-                    <td>{{ source.country }}</td>
-
-                    <td>${{ source.material_price }}</td>
-
-                    <td>${{ source.freight }}</td>
-
-                    <td>
-                        <b>${{ source.total_per_tonne }}</b>
-                    </td>
-
-                    <td>
-                        {{ source.transit_days }} days
-                    </td>
-
-                    <td>
-                        {{ source.risk }}
-                    </td>
-
-                </tr>
-
-                {% endfor %}
-
-            </table>
-
-        </div>
+        <p>
+            Port Limits:
+            LOA ≤ {{ port.Max_LOA }}m,
+            Beam ≤ {{ port.Max_Beam }}m,
+            Draft ≤ {{ port.Max_Draft }}m
+        </p>
 
 
-        <!-- BEST SOURCE -->
+        {% if eligible_vessels %}
 
-        {% if best_source %}
+        <h3>Eligible Vessels</h3>
 
-        <div class="card recommendation">
+        <table>
 
-            <h2>Recommended Source</h2>
+            <tr>
 
-            <h3>
-                {{ best_source.country }}
-            </h3>
+                <th>Vessel Type</th>
+                <th>Capacity</th>
+                <th>LOA</th>
+                <th>Beam</th>
+                <th>Draft</th>
 
-            <p>
-                Export Port:
-                <b>{{ best_source.export_port }}</b>
-            </p>
+            </tr>
 
-            <p>
-                Total Landed Cost:
-                <b>${{ best_source.total_per_tonne }}/tonne</b>
-            </p>
 
-            <p>
-                Estimated Total:
-                <b>${{ "{:,.0f}".format(best_source.total_cost) }}</b>
-            </p>
+            {% for vessel in eligible_vessels %}
 
-        </div>
+            <tr>
+
+                <td>
+                    <b>{{ vessel.type }}</b>
+                </td>
+
+                <td>{{ vessel.capacity }} t</td>
+
+                <td>{{ vessel.loa }} m</td>
+
+                <td>{{ vessel.beam }} m</td>
+
+                <td>{{ vessel.draft }} m</td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+        {% else %}
+
+        <p>
+            No vessel satisfies the current requirements.
+        </p>
 
         {% endif %}
 
-        {% if freight_trend %}
 
-<div class="card freight-chart-card">
+        {% if rejected_vessels %}
 
-    <h2>Freight Price Trend</h2>
+        <h3>Rejected Vessels</h3>
 
-    <p class="chart-subtitle">
-        Monthly freight price trend for
-        <strong>{{ best_source.country }}</strong>
-        through
-        <strong>{{ best_source.export_port }}</strong>
-    </p>
+        <ul>
 
-    <div class="freight-chart-container">
-        <canvas id="freightChart"></canvas>
+            {% for vessel in rejected_vessels %}
+
+            <li>
+
+                <b>{{ vessel.type }}</b>
+                → {{ vessel.reason }}
+
+            </li>
+
+            {% endfor %}
+
+        </ul>
+
+        {% endif %}
+
     </div>
 
-    <p class="chart-note">
-        Illustrative monthly freight trend for prototype demonstration.
-        Actual historical freight data can be integrated later.
-    </p>
 
-</div>
+    <!-- ROUTE ANALYSIS -->
 
-<script>
+    {% if route %}
 
-    const freightData = {{ freight_trend | tojson }};
+    <div class="card route-card">
 
-    const freightMonths = freightData.map(item => item.month);
-    const freightPrices = freightData.map(item => item.price);
+        <h2>🚢 Route Analysis</h2>
 
-    const freightChart = document.getElementById('freightChart');
-
-    new Chart(freightChart, {
-
-        type: 'line',
-
-        data: {
-            labels: freightMonths,
-
-            datasets: [{
-                label: 'Freight Price ($/tonne)',
-                data: freightPrices,
-                borderWidth: 3,
-                tension: 0.35,
-                fill: false,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        },
-
-        options: {
-
-            responsive: true,
-
-            maintainAspectRatio: false,
-
-            plugins: {
-
-                legend: {
-                    display: true
-                },
-
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return '$' + context.parsed.y + '/tonne';
-                        }
-                    }
-                }
-            },
-
-            scales: {
-
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Month'
-                    }
-                },
-
-                y: {
-                    beginAtZero: false,
-
-                    title: {
-                        display: true,
-                        text: 'Freight ($/tonne)'
-                    }
-                }
-            }
-        }
-    });
-
-</script>
-{% endif %}
+        <p>
+            Recommended Sea Route
+        </p>
 
 
-        <!-- VESSEL RESULTS -->
+        <div class="route-path">
 
-        <div class="card">
+            <div class="route-point">
 
-            <h2>Vessel Filtering</h2>
+                <span>EXPORT PORT</span>
 
-            <p>
-                Destination:
-                <b>{{ destination }}</b>
-            </p>
+                <b>{{ route.export_port }}</b>
 
-            <p>
-                Port Limits:
-                LOA ≤ {{ port.Max_LOA }}m,
-                Beam ≤ {{ port.Max_Beam }}m,
-                Draft ≤ {{ port.Max_Draft }}m
-            </p>
+            </div>
 
 
-            {% if eligible_vessels %}
-
-            <h3>Eligible Vessels</h3>
-
-            <table>
-
-                <tr>
-                    <th>Vessel Type</th>
-                    <th>Capacity</th>
-                    <th>LOA</th>
-                    <th>Beam</th>
-                    <th>Draft</th>
-                </tr>
-
-                {% for vessel in eligible_vessels %}
-
-                <tr>
-
-                    <td>
-                        <b>{{ vessel.type }}</b>
-                    </td>
-
-                    <td>{{ vessel.capacity }} t</td>
-                    <td>{{ vessel.loa }} m</td>
-                    <td>{{ vessel.beam }} m</td>
-                    <td>{{ vessel.draft }} m</td>
-
-                </tr>
-
-                {% endfor %}
-
-            </table>
-
-            {% else %}
-
-            <p>
-                No vessel satisfies the current requirements.
-            </p>
-
-            {% endif %}
+            <div class="route-arrow">
+                →
+            </div>
 
 
-            {% if rejected_vessels %}
+            <div class="route-point">
 
-            <h3>Rejected Vessels</h3>
+                <span>DESTINATION PORT</span>
 
-            <ul>
+                <b>{{ route.destination }}</b>
 
-                {% for vessel in rejected_vessels %}
-
-                <li>
-                    <b>{{ vessel.type }}</b>
-                    → {{ vessel.reason }}
-                </li>
-
-                {% endfor %}
-
-            </ul>
-
-            {% endif %}
+            </div>
 
         </div>
 
-<!-- =====================================================
-     REAL-TIME WEATHER & MARINE RISK
-===================================================== -->
 
-{% if route %}
+        <div class="route-grid">
 
-<div class="card weather-predictor-card">
+            <div class="route-item">
 
-    <div class="weather-header">
+                <span>Estimated Distance</span>
 
-        <div>
+                <b>
+                    {{ "{:,}".format(route.distance) }} NM
+                </b>
 
-            <h2>🌊 Weather & Marine Risk Predictor</h2>
+            </div>
 
-            <p class="weather-subtitle">
-                Real-time weather and sea-condition monitoring
-                along the estimated voyage route
-            </p>
 
-        </div>
+            <div class="route-item">
 
-        <div class="weather-live-status">
+                <span>Average Vessel Speed</span>
 
-            <span class="live-dot"></span>
+                <b>
+                    {{ route.speed }} knots
+                </b>
 
-            <span id="weatherStatus">
-                Live
-            </span>
+            </div>
+
+
+            <div class="route-item">
+
+                <span>Estimated Transit</span>
+
+                <b>
+                    {{ route.transit_days }} days
+                </b>
+
+            </div>
+
+
+            <div class="route-item">
+
+                <span>Route Status</span>
+
+                <b>
+                    Favorable
+                </b>
+
+            </div>
 
         </div>
 
     </div>
 
 
-    <!-- Overall Risk -->
+    <!-- VOYAGE ROUTE MAP -->
 
-    <div class="weather-overall">
+    <div class="card route-card">
 
-        <div>
+        <div class="route-header">
 
-            <span class="weather-label">
-                Overall Voyage Risk
-            </span>
+            <div>
 
-            <strong
-                id="overallRisk"
-                class="risk-badge"
-            >
-                Loading...
-            </strong>
+                <h2>Voyage Route</h2>
+
+                <p class="route-subtitle">
+                    Estimated voyage from export port to destination
+                </p>
+
+            </div>
+
+
+            <div class="route-status">
+
+                <span class="status-dot"></span>
+
+                Route Estimated
+
+            </div>
 
         </div>
 
-        <button
-            type="button"
-            id="refreshWeather"
-            class="weather-refresh-btn"
-        >
-            ↻ Refresh Now
-        </button>
 
-    </div>
+        <div class="route-summary">
+
+            <div class="route-stat">
+
+                <span class="stat-label">Origin</span>
+
+                <strong>{{ route.export_port }}</strong>
+
+            </div>
 
 
-    <!-- Location Cards -->
+            <div class="route-arrow">
+                →
+            </div>
 
-    <div
-        id="weatherLocations"
-        class="weather-location-grid"
-    >
 
-        <div class="weather-loading">
-            Loading live conditions...
+            <div class="route-stat">
+
+                <span class="stat-label">Destination</span>
+
+                <strong>{{ route.destination }}</strong>
+
+            </div>
+
+
+            <div class="route-stat">
+
+                <span class="stat-label">Distance</span>
+
+                <strong>{{ route.distance }} NM</strong>
+
+            </div>
+
+
+            <div class="route-stat">
+
+                <span class="stat-label">Transit Time</span>
+
+                <strong>{{ route.transit_days }} days</strong>
+
+            </div>
+
+
+            <div class="route-stat">
+
+                <span class="stat-label">Avg. Speed</span>
+
+                <strong>{{ route.speed }} knots</strong>
+
+            </div>
+
         </div>
 
-    </div>
 
+        <div class="route-map-container">
 
-    <!-- Update Information -->
+            <div id="routeMap"></div>
 
-    <div class="weather-footer">
+            <div class="map-overlay">
 
-        <span>
-            Last updated:
-            <strong id="weatherUpdated">
-                Loading...
-            </strong>
-        </span>
+                <div class="legend-item">
 
-        <span>
-            Auto-refresh:
-            <strong>
-                2 minutes
-            </strong>
-        </span>
-
-    </div>
-
-
-    <p class="weather-disclaimer">
-
-        Weather and marine conditions are model-based
-        operational data. They are intended for prototype
-        decision support and do not replace navigation-grade
-        nautical information.
-
-    </p>
-
-</div>
-
-
-<script>
-
-const weatherEndpoint =
-    "/weather_data"
-    + "?export_port={{ route.export_port }}"
-    + "&destination={{ route.destination }}";
-
-
-const weatherLocations =
-    document.getElementById(
-        "weatherLocations"
-    );
-
-const overallRisk =
-    document.getElementById(
-        "overallRisk"
-    );
-
-const weatherUpdated =
-    document.getElementById(
-        "weatherUpdated"
-    );
-
-const weatherStatus =
-    document.getElementById(
-        "weatherStatus"
-    );
-
-const refreshButton =
-    document.getElementById(
-        "refreshWeather"
-    );
-
-
-function getRiskClass(risk) {
-
-    if (risk === "HIGH") {
-        return "risk-high";
-    }
-
-    if (risk === "MODERATE") {
-        return "risk-moderate";
-    }
-
-    return "risk-low";
-}
-
-
-function formatValue(
-    value,
-    decimals = 1
-) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
-        return "N/A";
-
-    }
-
-    return Number(value).toFixed(
-        decimals
-    );
-}
-
-
-function renderWeather(data) {
-
-    overallRisk.textContent =
-        data.overall_risk;
-
-    overallRisk.className =
-        "risk-badge "
-        + getRiskClass(
-            data.overall_risk
-        );
-
-
-    weatherLocations.innerHTML = "";
-
-
-    data.locations.forEach(
-        location => {
-
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-            card.className =
-                "weather-location-card";
-
-
-            card.innerHTML = `
-
-                <div class="weather-location-title">
-
-                    <div>
-
-                        <h3>
-                            ${location.name}
-                        </h3>
-
-                        <span>
-                            ${location.type === "origin"
-                                ? "Export Port"
-                                : location.type === "destination"
-                                    ? "Destination"
-                                    : "Open Sea Waypoint"}
-                        </span>
-
-                    </div>
-
-                    <span class="
-                        location-risk
-                        ${getRiskClass(location.risk)}
-                    ">
-                        ${location.risk}
-                    </span>
+                    <span class="legend-dot origin-dot"></span>
+                    Export Port
 
                 </div>
 
 
-                <div class="weather-metrics">
+                <div class="legend-item">
 
-                    <div class="weather-metric">
-
-                        <span>Temperature</span>
-
-                        <strong>
-                            ${formatValue(
-                                location.temperature
-                            )} °C
-                        </strong>
-
-                    </div>
-
-
-                    <div class="weather-metric">
-
-                        <span>Wind Speed</span>
-
-                        <strong>
-                            ${formatValue(
-                                location.wind_speed
-                            )} km/h
-                        </strong>
-
-                    </div>
-
-
-                    <div class="weather-metric">
-
-                        <span>Wave Height</span>
-
-                        <strong>
-                            ${formatValue(
-                                location.wave_height
-                            )} m
-                        </strong>
-
-                    </div>
-
-
-                    <div class="weather-metric">
-
-                        <span>Wave Period</span>
-
-                        <strong>
-                            ${formatValue(
-                                location.wave_period
-                            )} s
-                        </strong>
-
-                    </div>
-
-
-                    <div class="weather-metric">
-
-                        <span>Sea Current</span>
-
-                        <strong>
-                            ${formatValue(
-                                location.ocean_current
-                            )} km/h
-                        </strong>
-
-                    </div>
-
-
-                    <div class="weather-metric">
-
-                        <span>Condition</span>
-
-                        <strong>
-                            ${location.weather}
-                        </strong>
-
-                    </div>
+                    <span class="legend-dot destination-dot"></span>
+                    Destination
 
                 </div>
 
+            </div>
 
-                <div class="weather-outlook">
-
-                    <strong>
-                        Next 6 hours
-                    </strong>
-
-                    <span>
-                        Max wind:
-                        ${formatValue(
-                            location.max_wind_6h
-                        )} km/h
-                    </span>
-
-                    <span>
-                        Max wave:
-                        ${formatValue(
-                            location.max_wave_6h
-                        )} m
-                    </span>
-
-                    <span>
-                        Rain probability:
-                        ${location.rain_probability_6h}%
-                    </span>
-
-                </div>
-
-            `;
-
-            weatherLocations.appendChild(
-                card
-            );
-
-        }
-    );
+        </div>
 
 
-    weatherUpdated.textContent =
-        data.updated_at;
+        <p class="route-note">
 
-    weatherStatus.textContent =
-        "Live";
+            Route shown is a prototype voyage estimate based on
+            maritime corridor waypoints and average vessel speed.
+            Actual maritime routing may vary.
 
-}
+        </p>
 
-
-async function loadWeather() {
-
-    weatherStatus.textContent =
-        "Updating...";
+    </div>
 
 
-    try {
+    <script>
 
-        const response =
-            await fetch(
-                weatherEndpoint,
+        const routePoints = [
+
+            {% for point in route.route_points %}
+
+            [
+                {{ point.lat }},
+                {{ point.lon }}
+            ]
+
+            {% if not loop.last %},{% endif %}
+
+            {% endfor %}
+
+        ];
+
+
+        const start = routePoints[0];
+
+        const end =
+            routePoints[routePoints.length - 1];
+
+
+        const routeMap =
+            L.map(
+                'routeMap',
                 {
-                    cache: "no-store"
+                    zoomControl: true,
+                    scrollWheelZoom: true
                 }
             );
 
 
-        const result =
-            await response.json();
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                attribution:
+                    '&copy; OpenStreetMap contributors',
+
+                maxZoom: 18
+            }
+        ).addTo(routeMap);
 
 
-        if (!result.success) {
+        const originIcon =
+            L.divIcon({
 
-            throw new Error(
-                result.error ||
-                "Weather unavailable"
-            );
+                className:
+                    'custom-map-marker',
 
-        }
+                html:
+                    '<div class="origin-marker"></div>',
+
+                iconSize: [22, 22],
+
+                iconAnchor: [11, 11]
+
+            });
 
 
-        renderWeather(
-            result.data
+        const destinationIcon =
+            L.divIcon({
+
+                className:
+                    'custom-map-marker',
+
+                html:
+                    '<div class="destination-marker"></div>',
+
+                iconSize: [22, 22],
+
+                iconAnchor: [11, 11]
+
+            });
+
+
+        const originMarker =
+            L.marker(
+                start,
+                {
+                    icon: originIcon
+                }
+            )
+            .addTo(routeMap);
+
+
+        originMarker.bindPopup(
+
+            "<div class='map-popup'>" +
+
+            "<strong>{{ route.export_port }}</strong>" +
+
+            "<br>" +
+
+            "<span>Export Port</span>" +
+
+            "</div>"
+
         );
 
 
-    }
+        const destinationMarker =
+            L.marker(
+                end,
+                {
+                    icon: destinationIcon
+                }
+            )
+            .addTo(routeMap);
 
-    catch (error) {
 
-        console.error(
-            "Weather error:",
-            error
+        destinationMarker.bindPopup(
+
+            "<div class='map-popup'>" +
+
+            "<strong>{{ route.destination }}</strong>" +
+
+            "<br>" +
+
+            "<span>Destination Port</span>" +
+
+            "</div>"
+
         );
 
 
-        weatherStatus.textContent =
-            "Unavailable";
-
-
-        weatherLocations.innerHTML = `
-
-            <div class="weather-error">
-
-                Unable to load live
-                weather conditions.
-
-                <br>
-
-                Please try refreshing.
-
-            </div>
-
-        `;
-
-    }
-
-}
-
-
-refreshButton.addEventListener(
-    "click",
-    loadWeather
-);
-
-
-// Initial load
-loadWeather();
-
-
-// Automatic refresh every 2 minutes
-setInterval(
-    loadWeather,
-    120000
-);
-
-</script>
-
-{% endif %}
-
-        <!-- ROUTE ANALYSIS -->
-
-        {% if route %}
-
-        <div class="card route-card">
-
-            <h2>🚢 Route Analysis</h2>
-
-            <p>
-                Recommended Sea Route
-            </p>
-
-            <div class="route-path">
-
-                <div class="route-point">
-                    <span>EXPORT PORT</span>
-                    <b>{{ route.export_port }}</b>
-                </div>
-
-                <div class="route-arrow">
-                    →
-                </div>
-
-                <div class="route-point">
-                    <span>DESTINATION PORT</span>
-                    <b>{{ route.destination }}</b>
-                </div>
-
-            </div>
-
-
-            <div class="route-grid">
-
-                <div class="route-item">
-
-                    <span>Estimated Distance</span>
-
-                    <b>
-                        {{ "{:,}".format(route.distance) }} NM
-                    </b>
-
-                </div>
-
-
-                <div class="route-item">
-
-                    <span>Average Vessel Speed</span>
-
-                    <b>
-                        {{ route.speed }} knots
-                    </b>
-
-                </div>
-
-
-                <div class="route-item">
-
-                    <span>Estimated Transit</span>
-
-                    <b>
-                        {{ route.transit_days }} days
-                    </b>
-
-                </div>
-
-
-                <div class="route-item">
-
-                    <span>Route Status</span>
-
-                    <b>
-                        Favorable
-                    </b>
-
-                </div>
-
-            </div>
-
-{% if route %}
-
-<!-- ================= VOYAGE ROUTE MAP ================= -->
-
-<div class="card route-card">
-
-    <div class="route-header">
-        <div>
-            <h2>Voyage Route</h2>
-            <p class="route-subtitle">
-                Estimated voyage from export port to destination
-            </p>
-        </div>
-
-        <div class="route-status">
-            <span class="status-dot"></span>
-            Route Estimated
-        </div>
-    </div>
-
-    <div class="route-summary">
-
-        <div class="route-stat">
-            <span class="stat-label">Origin</span>
-            <strong>{{ route.export_port }}</strong>
-        </div>
-
-        <div class="route-arrow">
-            →
-        </div>
-
-        <div class="route-stat">
-            <span class="stat-label">Destination</span>
-            <strong>{{ route.destination }}</strong>
-        </div>
-
-        <div class="route-stat">
-            <span class="stat-label">Distance</span>
-            <strong>{{ route.distance }} NM</strong>
-        </div>
-
-        <div class="route-stat">
-            <span class="stat-label">Transit Time</span>
-            <strong>{{ route.transit_days }} days</strong>
-        </div>
-
-        <div class="route-stat">
-            <span class="stat-label">Avg. Speed</span>
-            <strong>{{ route.speed }} knots</strong>
-        </div>
-
-    </div>
-
-    <div class="route-map-container">
-
-        <div id="routeMap"></div>
-
-        <div class="map-overlay">
-
-            <div class="legend-item">
-                <span class="legend-dot origin-dot"></span>
-                Export Port
-            </div>
-
-            <div class="legend-item">
-                <span class="legend-dot destination-dot"></span>
-                Destination
-            </div>
-
-        </div>
-
-    </div>
-
-    <p class="route-note">
-        Route shown is a prototype voyage estimate based on
-        maritime corridor waypoints and average vessel speed.
-        Actual maritime routing may vary.
-    </p>
-
-</div>
-
-
-<script>
-
-    const start = routePoints[0];
-
-    const end =
-        routePoints[routePoints.length - 1];
-
-
-    // ================= MAP =================
-
-    const routeMap = L.map(
-        'routeMap',
-        {
-            zoomControl: true,
-            scrollWheelZoom: true
-        }
-    );
-
-
-    L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-            attribution:
-                '&copy; OpenStreetMap contributors',
-
-            maxZoom: 18
-        }
-    ).addTo(routeMap);
-
-
-    // ================= CUSTOM ICONS =================
-
-    const originIcon = L.divIcon({
-
-        className:
-            'custom-map-marker',
-
-        html:
-            '<div class="origin-marker"></div>',
-
-        iconSize: [22, 22],
-
-        iconAnchor: [11, 11]
-
-    });
-
-
-    const destinationIcon = L.divIcon({
-
-        className:
-            'custom-map-marker',
-
-        html:
-            '<div class="destination-marker"></div>',
-
-        iconSize: [22, 22],
-
-        iconAnchor: [11, 11]
-
-    });
-
-
-    // ================= ORIGIN =================
-
-    const originMarker =
         L.marker(
+
             start,
-            {
-                icon: originIcon
-            }
-        )
-        .addTo(routeMap);
-
-
-    originMarker.bindPopup(
-
-        "<div class='map-popup'>" +
-
-        "<strong>{{ route.export_port }}</strong>" +
-
-        "<br>" +
-
-        "<span>Export Port</span>" +
-
-        "</div>"
-
-    );
-
-
-    // ================= DESTINATION =================
-
-    const destinationMarker =
-        L.marker(
-            end,
-            {
-                icon: destinationIcon
-            }
-        )
-        .addTo(routeMap);
-
-
-    destinationMarker.bindPopup(
-
-        "<div class='map-popup'>" +
-
-        "<strong>{{ route.destination }}</strong>" +
-
-        "<br>" +
-
-        "<span>Destination Port</span>" +
-
-        "</div>"
-
-    );
-
-
-    // ================= PORT LABELS =================
-
-    L.marker(
-        start,
-        {
-
-            icon: L.divIcon({
-
-                className:
-                    'port-label',
-
-                html:
-                    '<div>{{ route.export_port }}</div>',
-
-                iconSize: [130, 25],
-
-                iconAnchor: [65, -10]
-
-            })
-
-        }
-
-    ).addTo(routeMap);
-
-
-    L.marker(
-        end,
-        {
-
-            icon: L.divIcon({
-
-                className:
-                    'port-label',
-
-                html:
-                    '<div>{{ route.destination }}</div>',
-
-                iconSize: [130, 25],
-
-                iconAnchor: [65, -10]
-
-            })
-
-        }
-
-    ).addTo(routeMap);
-
-
-    // ================= MARITIME ROUTE =================
-
-    const routeLine =
-        L.polyline(
-            routePoints,
-            {
-
-                weight: 4,
-
-                opacity: 0.9,
-
-                dashArray: '10, 8',
-
-                lineJoin: 'round',
-
-                lineCap: 'round'
-
-            }
-        )
-        .addTo(routeMap);
-
-
-    // ================= ROUTE WAYPOINTS =================
-
-    for (
-        let i = 1;
-        i < routePoints.length - 1;
-        i++
-    ) {
-
-        L.circleMarker(
-
-            routePoints[i],
 
             {
 
-                radius: 3,
+                icon: L.divIcon({
 
-                opacity: 0.45,
+                    className:
+                        'port-label',
 
-                fillOpacity: 0.45
+                    html:
+                        '<div>{{ route.export_port }}</div>',
+
+                    iconSize: [130, 25],
+
+                    iconAnchor: [65, -10]
+
+                })
 
             }
 
         ).addTo(routeMap);
 
-    }
+
+        L.marker(
+
+            end,
+
+            {
+
+                icon: L.divIcon({
+
+                    className:
+                        'port-label',
+
+                    html:
+                        '<div>{{ route.destination }}</div>',
+
+                    iconSize: [130, 25],
+
+                    iconAnchor: [65, -10]
+
+                })
+
+            }
+
+        ).addTo(routeMap);
 
 
-    // ================= DIRECTION ARROW =================
+        const routeLine =
+            L.polyline(
 
-    const middleIndex =
-        Math.floor(
-            routePoints.length / 2
+                routePoints,
+
+                {
+
+                    weight: 4,
+
+                    opacity: 0.9,
+
+                    dashArray: '10, 8',
+
+                    lineJoin: 'round',
+
+                    lineCap: 'round'
+
+                }
+
+            )
+            .addTo(routeMap);
+
+
+        for (
+            let i = 1;
+            i < routePoints.length - 1;
+            i++
+        ) {
+
+            L.circleMarker(
+
+                routePoints[i],
+
+                {
+
+                    radius: 3,
+
+                    opacity: 0.45,
+
+                    fillOpacity: 0.45
+
+                }
+
+            ).addTo(routeMap);
+
+        }
+
+
+        const middleIndex =
+            Math.floor(
+                routePoints.length / 2
+            );
+
+
+        const middlePoint =
+            routePoints[middleIndex];
+
+
+        L.marker(
+
+            middlePoint,
+
+            {
+
+                icon: L.divIcon({
+
+                    className:
+                        'route-arrow-marker',
+
+                    html:
+                        '<div class="route-direction-arrow">➜</div>',
+
+                    iconSize: [35, 35],
+
+                    iconAnchor: [17, 17]
+
+                })
+
+            }
+
+        ).addTo(routeMap);
+
+
+        routeMap.fitBounds(
+
+            routeLine.getBounds(),
+
+            {
+
+                padding: [45, 45]
+
+            }
+
         );
 
 
-    const middlePoint =
-        routePoints[middleIndex];
+        originMarker.openPopup();
+
+    </script>
 
 
-    L.marker(
+    <!-- ROUTE RECOMMENDATION -->
 
-        middlePoint,
+    <div class="card">
 
-        {
+        <div class="route-note">
 
-            icon: L.divIcon({
+            <h3>Route Recommendation</h3>
 
-                className:
-                    'route-arrow-marker',
+            <p>
 
-                html:
-                    '<div class="route-direction-arrow">➜</div>',
+                The system recommends the route from
+                <b>{{ route.export_port }}</b>
+                to
+                <b>{{ route.destination }}</b>
+                based on the selected sourcing option.
 
-                iconSize: [35, 35],
+            </p>
 
-                iconAnchor: [17, 17]
+            <p>
 
-            })
+                Estimated voyage distance is approximately
+                <b>{{ "{:,}".format(route.distance) }} nautical miles</b>
+                with an estimated transit time of
+                <b>{{ route.transit_days }} days</b>.
 
-        }
+            </p>
 
-    ).addTo(routeMap);
+        </div>
 
-
-    // ================= FIT ROUTE =================
-
-    routeMap.fitBounds(
-
-        routeLine.getBounds(),
-
-        {
-
-            padding: [45, 45]
-
-        }
-
-    );
+    </div>
 
 
-    // ================= OPEN ORIGIN =================
+    <!-- ================= REAL-TIME WEATHER PREDICTOR ================= -->
 
-    originMarker.openPopup();
+    <div class="card weather-predictor-card">
 
-</script>
+        <div class="weather-header">
 
-{% endif %}
+            <div>
 
-            <div class="route-note">
+                <h2>🌊 Weather & Marine Risk Predictor</h2>
 
-                <h3>Route Recommendation</h3>
+                <p class="weather-subtitle">
 
-                <p>
-                    The system recommends the route from
-                    <b>{{ route.export_port }}</b>
-                    to
-                    <b>{{ route.destination }}</b>
-                    based on the selected sourcing option.
+                    Live weather and sea-condition monitoring
+                    along the estimated voyage route
+
                 </p>
 
-                <p>
-                    Estimated voyage distance is approximately
-                    <b>{{ "{:,}".format(route.distance) }} nautical miles</b>
-                    with an estimated transit time of
-                    <b>{{ route.transit_days }} days</b>.
-                </p>
+            </div>
+
+
+            <div class="weather-live-status">
+
+                <span class="live-dot"></span>
+
+                <span id="weatherStatus">
+                    Loading...
+                </span>
 
             </div>
 
         </div>
 
-        {% endif %}
 
-        <div class="card final">
+        <!-- OVERALL RISK -->
 
-            <h2>Final Recommendation</h2>
+        <div class="weather-overall">
 
-            <p>
-                {{ recommendation }}
-            </p>
+            <div>
+
+                <span class="weather-label">
+                    Overall Voyage Risk
+                </span>
+
+                <span
+                    id="overallRisk"
+                    class="risk-badge risk-low"
+                >
+                    Loading...
+                </span>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="refreshWeather"
+                class="weather-refresh-btn"
+            >
+                Refresh Now
+            </button>
 
         </div>
 
-        {% endif %}
+
+        <!-- WEATHER LOCATIONS -->
+
+        <div
+            id="weatherLocations"
+            class="weather-location-grid"
+        >
+
+            <div class="weather-loading">
+
+                Loading live weather conditions...
+
+            </div>
+
+        </div>
+
+
+        <div class="weather-footer">
+
+            <span>
+
+                Route:
+                <strong>
+                    {{ route.export_port }}
+                </strong>
+
+                →
+
+                <strong>
+                    {{ route.destination }}
+                </strong>
+
+            </span>
+
+
+            <span>
+
+                Updated:
+                <strong id="weatherUpdated">
+                    —
+                </strong>
+
+            </span>
+
+        </div>
+
+
+        <p class="weather-disclaimer">
+
+            Weather data is retrieved from Open-Meteo.
+            Marine conditions are used when available.
+            Risk levels are prototype estimates and should not be used
+            for real-world navigation decisions.
+
+        </p>
 
     </div>
 
+
+    <script>
+
+        const weatherEndpoint =
+            "/weather_data?export_port=" +
+            encodeURIComponent(
+                "{{ route.export_port }}"
+            ) +
+            "&destination=" +
+            encodeURIComponent(
+                "{{ route.destination }}"
+            );
+
+
+        const weatherLocations =
+            document.getElementById(
+                "weatherLocations"
+            );
+
+
+        const weatherStatus =
+            document.getElementById(
+                "weatherStatus"
+            );
+
+
+        const overallRisk =
+            document.getElementById(
+                "overallRisk"
+            );
+
+
+        const weatherUpdated =
+            document.getElementById(
+                "weatherUpdated"
+            );
+
+
+        const refreshButton =
+            document.getElementById(
+                "refreshWeather"
+            );
+
+
+        function getRiskClass(risk) {
+
+            if (risk === "HIGH") {
+                return "risk-high";
+            }
+
+            if (risk === "MODERATE") {
+                return "risk-moderate";
+            }
+
+            return "risk-low";
+
+        }
+
+
+        function formatValue(
+            value,
+            unit = ""
+        ) {
+
+            if (
+                value === null ||
+                value === undefined
+            ) {
+
+                return "N/A";
+
+            }
+
+            return (
+                Number(value).toFixed(1) +
+                unit
+            );
+
+        }
+
+
+        function renderWeather(data) {
+
+            weatherStatus.textContent =
+                "Live";
+
+
+            overallRisk.textContent =
+                data.overall_risk;
+
+
+            overallRisk.className =
+                "risk-badge " +
+                getRiskClass(
+                    data.overall_risk
+                );
+
+
+            weatherUpdated.textContent =
+                data.updated_at ||
+                "Unknown";
+
+
+            weatherLocations.innerHTML = "";
+
+
+            data.locations.forEach(
+                location => {
+
+                    const card =
+                        document.createElement(
+                            "div"
+                        );
+
+
+                    card.className =
+                        "weather-location-card";
+
+
+                    const riskClass =
+                        getRiskClass(
+                            location.risk
+                        );
+
+
+                    card.innerHTML = `
+
+                        <div class="weather-location-title">
+
+                            <div>
+
+                                <h3>
+                                    ${location.name}
+                                </h3>
+
+                                <span>
+                                    ${location.type}
+                                </span>
+
+                            </div>
+
+                            <span
+                                class="location-risk risk-badge ${riskClass}"
+                            >
+                                ${location.risk}
+                            </span>
+
+                        </div>
+
+
+                        <div class="weather-metrics">
+
+                            <div class="weather-metric">
+
+                                <span>
+                                    Temperature
+                                </span>
+
+                                <strong>
+                                    ${formatValue(
+                                        location.temperature,
+                                        " °C"
+                                    )}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="weather-metric">
+
+                                <span>
+                                    Weather
+                                </span>
+
+                                <strong>
+                                    ${location.weather || "N/A"}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="weather-metric">
+
+                                <span>
+                                    Wind
+                                </span>
+
+                                <strong>
+                                    ${formatValue(
+                                        location.wind_speed,
+                                        " km/h"
+                                    )}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="weather-metric">
+
+                                <span>
+                                    Wave Height
+                                </span>
+
+                                <strong>
+                                    ${formatValue(
+                                        location.wave_height,
+                                        " m"
+                                    )}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="weather-metric">
+
+                                <span>
+                                    Wave Period
+                                </span>
+
+                                <strong>
+                                    ${formatValue(
+                                        location.wave_period,
+                                        " s"
+                                    )}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="weather-metric">
+
+                                <span>
+                                    Ocean Current
+                                </span>
+
+                                <strong>
+                                    ${formatValue(
+                                        location.ocean_current,
+                                        " km/h"
+                                    )}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="weather-outlook">
+
+                            <strong>
+                                Next 6 Hours
+                            </strong>
+
+                            <span>
+                                Maximum Wind:
+                                ${formatValue(
+                                    location.max_wind_6h,
+                                    " km/h"
+                                )}
+                            </span>
+
+                            <span>
+                                Maximum Wave:
+                                ${formatValue(
+                                    location.max_wave_6h,
+                                    " m"
+                                )}
+                            </span>
+
+                            <span>
+                                Rain Probability:
+                                ${formatValue(
+                                    location.rain_probability_6h,
+                                    "%"
+                                )}
+                            </span>
+
+                            <span>
+                                Severe Weather:
+                                ${
+                                    location.severe_weather_expected
+                                    ? "Expected"
+                                    : "Not Expected"
+                                }
+                            </span>
+
+                        </div>
+
+                    `;
+
+
+                    weatherLocations.appendChild(
+                        card
+                    );
+
+                }
+            );
+
+        }
+
+
+        async function loadWeather() {
+
+            weatherStatus.textContent =
+                "Updating...";
+
+
+            try {
+
+                const response =
+                    await fetch(
+
+                        weatherEndpoint +
+                        "&_=" +
+                        Date.now(),
+
+                        {
+                            cache: "no-store"
+                        }
+
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                if (
+                    !response.ok ||
+                    !result.success
+                ) {
+
+                    throw new Error(
+                        result.error ||
+                        "Weather unavailable"
+                    );
+
+                }
+
+
+                renderWeather(
+                    result.data
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Weather error:",
+                    error
+                );
+
+
+                weatherStatus.textContent =
+                    "Unavailable";
+
+
+                weatherLocations.innerHTML = `
+
+                    <div class="weather-error">
+
+                        Unable to load live weather conditions.
+
+                        <br><br>
+
+                        Please try
+                        <b>Refresh Now</b>.
+
+                    </div>
+
+                `;
+
+            }
+
+        }
+
+
+        refreshButton.addEventListener(
+            "click",
+            loadWeather
+        );
+
+
+        loadWeather();
+
+
+        setInterval(
+            loadWeather,
+            120000
+        );
+
+    </script>
+
+    {% endif %}
+
+
+    <!-- FINAL RECOMMENDATION -->
+
+    <div class="card final">
+
+        <h2>Final Recommendation</h2>
+
+        <p>
+            {{ recommendation }}
+        </p>
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+
+<!-- PRIORITY SLIDER SCRIPT -->
+
 <script>
+
     const sliders = [
-        document.getElementById("costPriority"),
-        document.getElementById("transitPriority"),
-        document.getElementById("tradePriority")
+
+        document.getElementById(
+            "costPriority"
+        ),
+
+        document.getElementById(
+            "transitPriority"
+        ),
+
+        document.getElementById(
+            "tradePriority"
+        )
+
     ];
+
 
     const values = [
-        document.getElementById("costValue"),
-        document.getElementById("transitValue"),
-        document.getElementById("tradeValue")
+
+        document.getElementById(
+            "costValue"
+        ),
+
+        document.getElementById(
+            "transitValue"
+        ),
+
+        document.getElementById(
+            "tradeValue"
+        )
+
     ];
 
-    const totalDisplay = document.getElementById("priorityTotal");
 
-    function updatePriorities(changedIndex) {
+    const totalDisplay =
+        document.getElementById(
+            "priorityTotal"
+        );
 
-        let changedValue = Number(sliders[changedIndex].value);
 
-        let remaining = 100 - changedValue;
+    function updatePriorities(
+        changedIndex
+    ) {
+
+        let changedValue =
+            Number(
+                sliders[changedIndex].value
+            );
+
+
+        let remaining =
+            100 - changedValue;
+
 
         let otherIndexes = [];
 
-        for (let i = 0; i < sliders.length; i++) {
+
+        for (
+            let i = 0;
+            i < sliders.length;
+            i++
+        ) {
+
             if (i !== changedIndex) {
+
                 otherIndexes.push(i);
+
             }
+
         }
+
 
         let oldOtherTotal = 0;
 
-        otherIndexes.forEach(i => {
-            oldOtherTotal += Number(sliders[i].value);
-        });
 
-        otherIndexes.forEach(i => {
+        otherIndexes.forEach(
+            i => {
 
-            let oldValue = Number(sliders[i].value);
+                oldOtherTotal +=
+                    Number(
+                        sliders[i].value
+                    );
 
-            let newValue;
-
-            if (oldOtherTotal === 0) {
-                newValue = remaining / otherIndexes.length;
-            } else {
-                newValue = (oldValue / oldOtherTotal) * remaining;
             }
-
-            sliders[i].value = Math.round(newValue);
-        });
-
-        // Fix rounding difference
-        let total = sliders.reduce(
-            (sum, slider) => sum + Number(slider.value),
-            0
         );
 
-        let difference = 100 - total;
+
+        otherIndexes.forEach(
+            i => {
+
+                let oldValue =
+                    Number(
+                        sliders[i].value
+                    );
+
+
+                let newValue;
+
+
+                if (oldOtherTotal === 0) {
+
+                    newValue =
+                        remaining /
+                        otherIndexes.length;
+
+                } else {
+
+                    newValue =
+                        (
+                            oldValue /
+                            oldOtherTotal
+                        ) *
+                        remaining;
+
+                }
+
+
+                sliders[i].value =
+                    Math.round(
+                        newValue
+                    );
+
+            }
+        );
+
+
+        let total =
+            sliders.reduce(
+                (
+                    sum,
+                    slider
+                ) => {
+
+                    return (
+                        sum +
+                        Number(
+                            slider.value
+                        )
+                    );
+
+                },
+                0
+            );
+
+
+        let difference =
+            100 - total;
+
 
         if (difference !== 0) {
-            let lastIndex = otherIndexes[otherIndexes.length - 1];
+
+            let lastIndex =
+                otherIndexes[
+                    otherIndexes.length - 1
+                ];
+
 
             sliders[lastIndex].value =
-                Number(sliders[lastIndex].value) + difference;
+                Number(
+                    sliders[lastIndex].value
+                ) +
+                difference;
+
         }
 
-        // Update displayed percentages
-        sliders.forEach((slider, i) => {
-            values[i].textContent = slider.value + "%";
-        });
 
-        totalDisplay.textContent = "100%";
+        sliders.forEach(
+            (
+                slider,
+                i
+            ) => {
+
+                values[i].textContent =
+                    slider.value +
+                    "%";
+
+            }
+        );
+
+
+        totalDisplay.textContent =
+            "100%";
+
     }
 
-    sliders.forEach((slider, index) => {
 
-        slider.addEventListener("input", function () {
-            updatePriorities(index);
-        });
+    sliders.forEach(
+        (
+            slider,
+            index
+        ) => {
 
-    });
+            slider.addEventListener(
+                "input",
+                function () {
 
-    // Initial values
-    sliders.forEach((slider, i) => {
-        values[i].textContent = slider.value + "%";
-    });
+                    updatePriorities(
+                        index
+                    );
 
-    totalDisplay.textContent = "100%";
+                }
+            );
+
+        }
+    );
+
+
+    sliders.forEach(
+        (
+            slider,
+            i
+        ) => {
+
+            values[i].textContent =
+                slider.value +
+                "%";
+
+        }
+    );
+
+
+    totalDisplay.textContent =
+        "100%";
+
 </script>
+
 
 </body>
 
