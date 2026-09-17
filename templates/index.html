@@ -161,22 +161,6 @@
         >
     </div>
 
-    <div class="priority-item">
-        <div class="priority-label">
-            <span>Weather Safety</span>
-            <span id="weatherValue">25%</span>
-        </div>
-
-        <input
-            type="range"
-            id="weatherPriority"
-            name="weather_priority"
-            min="0"
-            max="100"
-            value="25"
-        >
-    </div>
-
     <div class="priority-total">
         Total Priority:
         <strong id="priorityTotal">100%</strong>
@@ -452,87 +436,458 @@
             {% endif %}
 
         </div>
-        <!-- WEATHER ANALYSIS -->
 
-<div class="card weather-card">
+<!-- =====================================================
+     REAL-TIME WEATHER & MARINE RISK
+===================================================== -->
 
-    <h2>🌦️ Weather & Risk Analysis</h2>
+{% if route %}
 
-    <p>
-        Destination:
-        <b>{{ destination }}</b>
+<div class="card weather-predictor-card">
+
+    <div class="weather-header">
+
+        <div>
+
+            <h2>🌊 Weather & Marine Risk Predictor</h2>
+
+            <p class="weather-subtitle">
+                Real-time weather and sea-condition monitoring
+                along the estimated voyage route
+            </p>
+
+        </div>
+
+        <div class="weather-live-status">
+
+            <span class="live-dot"></span>
+
+            <span id="weatherStatus">
+                Live
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- Overall Risk -->
+
+    <div class="weather-overall">
+
+        <div>
+
+            <span class="weather-label">
+                Overall Voyage Risk
+            </span>
+
+            <strong
+                id="overallRisk"
+                class="risk-badge"
+            >
+                Loading...
+            </strong>
+
+        </div>
+
+        <button
+            type="button"
+            id="refreshWeather"
+            class="weather-refresh-btn"
+        >
+            ↻ Refresh Now
+        </button>
+
+    </div>
+
+
+    <!-- Location Cards -->
+
+    <div
+        id="weatherLocations"
+        class="weather-location-grid"
+    >
+
+        <div class="weather-loading">
+            Loading live conditions...
+        </div>
+
+    </div>
+
+
+    <!-- Update Information -->
+
+    <div class="weather-footer">
+
+        <span>
+            Last updated:
+            <strong id="weatherUpdated">
+                Loading...
+            </strong>
+        </span>
+
+        <span>
+            Auto-refresh:
+            <strong>
+                2 minutes
+            </strong>
+        </span>
+
+    </div>
+
+
+    <p class="weather-disclaimer">
+
+        Weather and marine conditions are model-based
+        operational data. They are intended for prototype
+        decision support and do not replace navigation-grade
+        nautical information.
+
     </p>
 
-    {% if weather %}
+</div>
 
-    <div class="weather-grid">
 
-        <div class="weather-item">
-            <span>Temperature</span>
-            <b>{{ weather.temperature }} °C</b>
-        </div>
+<script>
 
-        <div class="weather-item">
-            <span>Wind Speed</span>
-            <b>{{ weather.wind_speed }} km/h</b>
-        </div>
+const weatherEndpoint =
+    "/weather_data"
+    + "?export_port={{ route.export_port }}"
+    + "&destination={{ route.destination }}";
 
-        <div class="weather-item">
-            <span>Precipitation</span>
-            <b>{{ weather.precipitation }} mm</b>
-        </div>
 
-        <div class="weather-item">
-            <span>Rain Probability</span>
-            <b>{{ weather.rain_probability }}%</b>
-        </div>
+const weatherLocations =
+    document.getElementById(
+        "weatherLocations"
+    );
 
-    </div>
+const overallRisk =
+    document.getElementById(
+        "overallRisk"
+    );
 
-    <div class="weather-risk">
+const weatherUpdated =
+    document.getElementById(
+        "weatherUpdated"
+    );
 
-        <h3>
-            Weather Risk:
-            {{ weather.risk }}
-        </h3>
+const weatherStatus =
+    document.getElementById(
+        "weatherStatus"
+    );
 
-        {% if weather.risk == "HIGH" %}
+const refreshButton =
+    document.getElementById(
+        "refreshWeather"
+    );
 
-        <p>
-            Severe weather conditions may increase
-            the possibility of voyage or port delays.
-        </p>
 
-        {% elif weather.risk == "MODERATE" %}
+function getRiskClass(risk) {
 
-        <p>
-            Moderate weather conditions may cause
-            some operational delays.
-        </p>
+    if (risk === "HIGH") {
+        return "risk-high";
+    }
 
-        {% elif weather.risk == "LOW" %}
+    if (risk === "MODERATE") {
+        return "risk-moderate";
+    }
 
-        <p>
-            Current weather conditions appear relatively
-            favorable for operations.
-        </p>
+    return "risk-low";
+}
 
-        {% else %}
 
-        <p>
-            Weather information is currently unavailable.
-        </p>
+function formatValue(
+    value,
+    decimals = 1
+) {
 
-        {% endif %}
+    if (
+        value === null ||
+        value === undefined
+    ) {
 
-    </div>
+        return "N/A";
 
-    {% endif %}
+    }
 
-    </div>
+    return Number(value).toFixed(
+        decimals
+    );
+}
+
+
+function renderWeather(data) {
+
+    overallRisk.textContent =
+        data.overall_risk;
+
+    overallRisk.className =
+        "risk-badge "
+        + getRiskClass(
+            data.overall_risk
+        );
+
+
+    weatherLocations.innerHTML = "";
+
+
+    data.locations.forEach(
+        location => {
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+            card.className =
+                "weather-location-card";
+
+
+            card.innerHTML = `
+
+                <div class="weather-location-title">
+
+                    <div>
+
+                        <h3>
+                            ${location.name}
+                        </h3>
+
+                        <span>
+                            ${location.type === "origin"
+                                ? "Export Port"
+                                : location.type === "destination"
+                                    ? "Destination"
+                                    : "Open Sea Waypoint"}
+                        </span>
+
+                    </div>
+
+                    <span class="
+                        location-risk
+                        ${getRiskClass(location.risk)}
+                    ">
+                        ${location.risk}
+                    </span>
+
+                </div>
+
+
+                <div class="weather-metrics">
+
+                    <div class="weather-metric">
+
+                        <span>Temperature</span>
+
+                        <strong>
+                            ${formatValue(
+                                location.temperature
+                            )} °C
+                        </strong>
+
+                    </div>
+
+
+                    <div class="weather-metric">
+
+                        <span>Wind Speed</span>
+
+                        <strong>
+                            ${formatValue(
+                                location.wind_speed
+                            )} km/h
+                        </strong>
+
+                    </div>
+
+
+                    <div class="weather-metric">
+
+                        <span>Wave Height</span>
+
+                        <strong>
+                            ${formatValue(
+                                location.wave_height
+                            )} m
+                        </strong>
+
+                    </div>
+
+
+                    <div class="weather-metric">
+
+                        <span>Wave Period</span>
+
+                        <strong>
+                            ${formatValue(
+                                location.wave_period
+                            )} s
+                        </strong>
+
+                    </div>
+
+
+                    <div class="weather-metric">
+
+                        <span>Sea Current</span>
+
+                        <strong>
+                            ${formatValue(
+                                location.ocean_current
+                            )} km/h
+                        </strong>
+
+                    </div>
+
+
+                    <div class="weather-metric">
+
+                        <span>Condition</span>
+
+                        <strong>
+                            ${location.weather}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="weather-outlook">
+
+                    <strong>
+                        Next 6 hours
+                    </strong>
+
+                    <span>
+                        Max wind:
+                        ${formatValue(
+                            location.max_wind_6h
+                        )} km/h
+                    </span>
+
+                    <span>
+                        Max wave:
+                        ${formatValue(
+                            location.max_wave_6h
+                        )} m
+                    </span>
+
+                    <span>
+                        Rain probability:
+                        ${location.rain_probability_6h}%
+                    </span>
+
+                </div>
+
+            `;
+
+            weatherLocations.appendChild(
+                card
+            );
+
+        }
+    );
+
+
+    weatherUpdated.textContent =
+        data.updated_at;
+
+    weatherStatus.textContent =
+        "Live";
+
+}
+
+
+async function loadWeather() {
+
+    weatherStatus.textContent =
+        "Updating...";
+
+
+    try {
+
+        const response =
+            await fetch(
+                weatherEndpoint,
+                {
+                    cache: "no-store"
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                "Weather unavailable"
+            );
+
+        }
+
+
+        renderWeather(
+            result.data
+        );
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Weather error:",
+            error
+        );
+
+
+        weatherStatus.textContent =
+            "Unavailable";
+
+
+        weatherLocations.innerHTML = `
+
+            <div class="weather-error">
+
+                Unable to load live
+                weather conditions.
+
+                <br>
+
+                Please try refreshing.
 
             </div>
 
+        `;
+
+    }
+
+}
+
+
+refreshButton.addEventListener(
+    "click",
+    loadWeather
+);
+
+
+// Initial load
+loadWeather();
+
+
+// Automatic refresh every 2 minutes
+setInterval(
+    loadWeather,
+    120000
+);
+
+</script>
+
+{% endif %}
 
         <!-- ROUTE ANALYSIS -->
 
@@ -695,18 +1050,6 @@
 
 
 <script>
-
-    // ================= ROUTE DATA =================
-
-    const routePoints = [
-        {% for point in route.route_points %}
-        [
-            {{ point.lat }},
-            {{ point.lon }}
-        ]{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
-
 
     const start = routePoints[0];
 
@@ -1022,15 +1365,13 @@
     const sliders = [
         document.getElementById("costPriority"),
         document.getElementById("transitPriority"),
-        document.getElementById("tradePriority"),
-        document.getElementById("weatherPriority")
+        document.getElementById("tradePriority")
     ];
 
     const values = [
         document.getElementById("costValue"),
         document.getElementById("transitValue"),
-        document.getElementById("tradeValue"),
-        document.getElementById("weatherValue")
+        document.getElementById("tradeValue")
     ];
 
     const totalDisplay = document.getElementById("priorityTotal");

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import csv
 import requests
 
@@ -12,94 +12,6 @@ def read_csv(filename):
     with open(filename, "r", newline="", encoding="utf-8") as file:
         return list(csv.DictReader(file))
 
-
-# -----------------------------
-# Destination port coordinates
-# -----------------------------
-port_coordinates = {
-    "Paradip": (20.27, 86.68),
-    "Vizag": (17.69, 83.22),
-    "Gangavaram": (17.63, 83.27),
-    "Gopalpur": (19.27, 84.88),
-    "Dhamra": (20.78, 86.95),
-    "Sagar-Sandheads": (21.65, 88.00),
-    "Haldia": (22.03, 88.06)
-}
-
-
-# -----------------------------
-# Get weather information
-# -----------------------------
-
-def get_weather(destination):
-
-    latitude, longitude = port_coordinates[destination]
-
-    url = (
-        "https://api.open-meteo.com/v1/forecast"
-        f"?latitude={latitude}"
-        f"&longitude={longitude}"
-        "&current=temperature_2m,wind_speed_10m,precipitation"
-        "&daily=precipitation_probability_max"
-        "&forecast_days=1"
-        "&timezone=auto"
-    )
-
-    try:
-        response = requests.get(url, timeout=10)
-
-        # Check if API request was successful
-        response.raise_for_status()
-
-        data = response.json()
-
-        current = data.get("current", {})
-        daily = data.get("daily", {})
-
-        temperature = current.get("temperature_2m")
-        wind_speed = current.get("wind_speed_10m")
-        precipitation = current.get("precipitation")
-
-        rain_probability_list = daily.get(
-            "precipitation_probability_max", []
-        )
-
-        rain_probability = (
-            rain_probability_list[0]
-            if rain_probability_list
-            else 0
-        )
-
-        # Risk calculation
-        if wind_speed is None:
-            risk = "Unavailable"
-        elif wind_speed >= 40 or rain_probability >= 80:
-            risk = "HIGH"
-        elif wind_speed >= 25 or rain_probability >= 50:
-            risk = "MODERATE"
-        else:
-            risk = "LOW"
-
-        return {
-            "temperature": temperature,
-            "wind_speed": wind_speed,
-            "precipitation": precipitation,
-            "rain_probability": rain_probability,
-            "risk": risk
-        }
-
-    except Exception as e:
-
-        print("WEATHER ERROR:", destination, e)
-
-        return {
-            "temperature": "N/A",
-            "wind_speed": "N/A",
-            "precipitation": "N/A",
-            "rain_probability": "N/A",
-            "risk": "Unavailable"
-        }
-    
 # ================= ROUTE ANALYSIS =================
 
 # Destination port coordinates
@@ -475,6 +387,400 @@ def get_route(export_port, destination):
         ]
     }
 
+# =========================================================
+# REAL-TIME MARINE WEATHER PREDICTOR
+# =========================================================
+
+# Small server-side cache to reduce API rate-limit problems.
+# Data older than 60 seconds is refreshed automatically.
+weather_cache = {}
+
+
+def weather_description(code):
+
+    descriptions = {
+        0: "Clear sky",
+        1: "Mainly clear",
+        2: "Partly cloudy",
+        3: "Overcast",
+        45: "Fog",
+        48: "Depositing rime fog",
+        51: "Light drizzle",
+        53: "Moderate drizzle",
+        55: "Dense drizzle",
+        61: "Light rain",
+        63: "Moderate rain",
+        65: "Heavy rain",
+        71: "Light snow",
+        73: "Moderate snow",
+        75: "Heavy snow",
+        80: "Rain showers",
+        81: "Moderate rain showers",
+        82: "Heavy rain showers",
+        95: "Thunderstorm",
+        96: "Thunderstorm with hail",
+        99: "Thunderstorm with heavy hail"
+    }
+
+    return descriptions.get(code, "Unknown")
+
+
+def calculate_weather_risk(
+    wind_speed,
+    wave_height,
+    rain_probability,
+    weather_code
+):
+
+    score = 0
+
+    # Wind contribution
+    if wind_speed >= 45:
+        score += 3
+    elif wind_speed >= 30:
+        score += 2
+    elif wind_speed >= 20:
+        score += 1
+
+    # Wave contribution
+    if wave_height is not None:
+        if wave_height >= 4:
+            score += 3
+        elif wave_height >= 2.5:
+            score += 2
+        elif wave_height >= 1.5:
+            score += 1
+
+    # Rain probability
+    if rain_probability >= 80:
+        score += 2
+    elif rain_probability >= 50:
+        score += 1
+
+    # Severe weather
+    if weather_code in [95, 96, 99]:
+        score += 3
+
+    if score >= 6:
+        return "HIGH"
+    elif score >= 3:
+        return "MODERATE"
+
+    return "LOW"
+
+
+def get_weather_predictor(export_port, destination):
+
+    from time import time
+
+    cache_key = f"{export_port}|{destination}"
+    now = time()
+
+    # Return recent data instead of repeatedly hitting the public API.
+    if cache_key in weather_cache:
+        cached_time, cached_data = weather_cache[cache_key]
+
+        if now - cached_time < 60:
+            return cached_data
+
+    route = get_route(export_port, destination)
+
+    if not route:
+        return None
+
+    route_points = route["route_points"]
+
+    # Three representative points along the voyage.
+    start = route_points[0]
+    middle = route_points[len(route_points) // 2]
+    end = route_points[-1]
+
+    locations = [
+        {
+            "name": export_port,
+            "type": "origin",
+            "lat": start["lat"],
+            "lon": start["lon"]
+        },
+        {
+            "name": "Open Sea Waypoint",
+            "type": "waypoint",
+            "lat": middle["lat"],
+            "lon": middle["lon"]
+        },
+        {
+            "name": destination,
+            "type": "destination",
+            "lat": end["lat"],
+            "lon": end["lon"]
+        }
+    ]
+
+    latitudes = ",".join(
+        str(location["lat"])
+        for location in locations
+    )
+
+    longitudes = ",".join(
+        str(location["lon"])
+        for location in locations
+    )
+
+    # =====================================================
+    # WEATHER API
+    # =====================================================
+
+    weather_url = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={latitudes}"
+        f"&longitude={longitudes}"
+        "&current=temperature_2m,wind_speed_10m,weather_code,precipitation"
+        "&hourly=wind_speed_10m,precipitation_probability,weather_code"
+        "&forecast_hours=6"
+        "&timezone=auto"
+    )
+
+    # =====================================================
+    # MARINE API
+    # =====================================================
+
+    marine_url = (
+        "https://marine-api.open-meteo.com/v1/marine"
+        f"?latitude={latitudes}"
+        f"&longitude={longitudes}"
+        "&current=wave_height,wave_period,ocean_current_velocity"
+        "&hourly=wave_height"
+        "&forecast_hours=6"
+        "&timezone=auto"
+        "&cell_selection=sea"
+    )
+
+    # Weather is the essential part. Marine data is optional because
+    # a port coordinate can occasionally fall outside the marine grid.
+    try:
+        weather_response = requests.get(
+            weather_url,
+            timeout=15
+        )
+        weather_response.raise_for_status()
+        weather_data = weather_response.json()
+
+    except Exception as e:
+        print("WEATHER API ERROR:", e)
+        return None
+
+    # Open-Meteo returns one object for one coordinate and a list for
+    # multiple coordinates. Normalize both cases to a list.
+    if isinstance(weather_data, dict):
+        weather_data = [weather_data]
+
+    marine_data = []
+
+    try:
+        marine_response = requests.get(
+            marine_url,
+            timeout=15
+        )
+        marine_response.raise_for_status()
+        marine_data = marine_response.json()
+
+        if isinstance(marine_data, dict):
+            marine_data = [marine_data]
+
+    except Exception as e:
+        # Do NOT fail the complete weather predictor if marine data
+        # is unavailable for one or more points.
+        print("MARINE API WARNING:", e)
+        marine_data = []
+
+    results = []
+
+    for index, location in enumerate(locations):
+
+        # If the API returned fewer entries than expected, skip only
+        # that location instead of crashing the whole endpoint.
+        if index >= len(weather_data):
+            continue
+
+        weather = weather_data[index] or {}
+
+        current_weather = weather.get(
+            "current",
+            {}
+        )
+
+        hourly_weather = weather.get(
+            "hourly",
+            {}
+        )
+
+        # -----------------------------------------
+        # Current weather
+        # -----------------------------------------
+
+        temperature = current_weather.get(
+            "temperature_2m"
+        )
+
+        wind_speed = current_weather.get(
+            "wind_speed_10m"
+        )
+
+        weather_code = current_weather.get(
+            "weather_code"
+        )
+
+        precipitation = current_weather.get(
+            "precipitation"
+        )
+
+        # -----------------------------------------
+        # 6-hour weather outlook
+        # -----------------------------------------
+
+        future_winds = hourly_weather.get(
+            "wind_speed_10m",
+            []
+        )
+
+        future_rain = hourly_weather.get(
+            "precipitation_probability",
+            []
+        )
+
+        future_weather_codes = hourly_weather.get(
+            "weather_code",
+            []
+        )
+
+        max_wind = max(
+            future_winds
+        ) if future_winds else (wind_speed or 0)
+
+        max_rain_probability = max(
+            future_rain
+        ) if future_rain else 0
+
+        severe_weather_expected = any(
+            code in [95, 96, 99]
+            for code in future_weather_codes
+        )
+
+        # -----------------------------------------
+        # Marine data (optional)
+        # -----------------------------------------
+
+        wave_height = None
+        wave_period = None
+        ocean_current = None
+        max_wave = None
+
+        if index < len(marine_data):
+
+            marine = marine_data[index] or {}
+
+            current_marine = marine.get(
+                "current",
+                {}
+            )
+
+            hourly_marine = marine.get(
+                "hourly",
+                {}
+            )
+
+            wave_height = current_marine.get(
+                "wave_height"
+            )
+
+            wave_period = current_marine.get(
+                "wave_period"
+            )
+
+            ocean_current = current_marine.get(
+                "ocean_current_velocity"
+            )
+
+            future_waves = hourly_marine.get(
+                "wave_height",
+                []
+            )
+
+            max_wave = max(
+                future_waves
+            ) if future_waves else wave_height
+
+        # -----------------------------------------
+        # Risk
+        # -----------------------------------------
+
+        risk = calculate_weather_risk(
+            max_wind,
+            max_wave,
+            max_rain_probability,
+            weather_code or 0
+        )
+
+        results.append({
+            "name": location["name"],
+            "type": location["type"],
+            "latitude": location["lat"],
+            "longitude": location["lon"],
+            "temperature": temperature,
+            "wind_speed": wind_speed,
+            "wave_height": wave_height,
+            "wave_period": wave_period,
+            "ocean_current": ocean_current,
+            "precipitation": precipitation,
+            "weather": weather_description(
+                weather_code
+            ),
+            "max_wind_6h": max_wind,
+            "max_wave_6h": max_wave,
+            "rain_probability_6h": max_rain_probability,
+            "severe_weather_expected": severe_weather_expected,
+            "risk": risk
+        })
+
+    if not results:
+        return None
+
+    # -----------------------------------------
+    # Overall voyage risk
+    # -----------------------------------------
+
+    risk_order = {
+        "LOW": 1,
+        "MODERATE": 2,
+        "HIGH": 3
+    }
+
+    overall_risk = max(
+        results,
+        key=lambda x: risk_order[x["risk"]]
+    )["risk"]
+
+    updated_at = weather_data[0].get(
+        "current",
+        {}
+    ).get(
+        "time",
+        "Unknown"
+    )
+
+    result = {
+        "locations": results,
+        "overall_risk": overall_risk,
+        "updated_at": updated_at
+    }
+
+    weather_cache[cache_key] = (
+        now,
+        result
+    )
+
+    return result
+
 # ================= FREIGHT PRICE TREND =================
 
 def get_freight_trend(export_port, material):
@@ -559,6 +865,45 @@ def get_freight_trend(export_port, material):
 def home():
     return render_template("index.html")
 
+# =========================================================
+# WEATHER API ROUTE
+# =========================================================
+
+@app.route("/weather_data")
+def weather_data():
+
+    export_port = request.args.get("export_port")
+    destination = request.args.get("destination")
+
+    print(
+        "WEATHER REQUEST:",
+        export_port,
+        "->",
+        destination
+    )
+
+    if not export_port or not destination:
+        return jsonify({
+            "success": False,
+            "error": "Missing route information"
+        }), 400
+
+    weather = get_weather_predictor(
+        export_port,
+        destination
+    )
+
+    if weather is None:
+        return jsonify({
+            "success": False,
+            "error": "Live weather service is temporarily unavailable"
+        }), 503
+
+    return jsonify({
+        "success": True,
+        "data": weather
+    })
+
 
 # -----------------------------
 # Analyze shipment
@@ -581,10 +926,6 @@ def analyze():
 
     trade_priority = float(
     request.form.get("trade_priority", 25)
-)
-
-    weather_priority = float(
-    request.form.get("weather_priority", 25)
 )
 
     # Read datasets
@@ -611,12 +952,6 @@ def analyze():
     max_loa = float(selected_port["Max_LOA"])
     max_beam = float(selected_port["Max_Beam"])
     max_draft = float(selected_port["Max_Draft"])
-
-    # -----------------------------
-    # Weather analysis
-    # -----------------------------
-
-    weather = get_weather(destination)
 
     # -----------------------------
     # Source country ranking
@@ -735,7 +1070,6 @@ def analyze():
             f"Source from {best_source['country']} through "
             f"{best_source['export_port']} and consider a "
             f"{recommended_vessel['type']} vessel. "
-            f"Destination weather risk is {weather['risk']}."
         )
 
     elif best_source:
@@ -766,13 +1100,11 @@ def analyze():
     rejected_vessels=rejected_vessels,
     recommendation=recommendation,
     route=route,
-    weather=weather,
     freight_trend=freight_trend,
 
     cost_priority=cost_priority,
     transit_priority=transit_priority,
     trade_priority=trade_priority,
-    weather_priority=weather_priority
 )
 
 if __name__ == "__main__":
